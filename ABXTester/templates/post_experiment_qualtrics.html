@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Final Qualtrics Page</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);
+                $("#qualtrics-link").click(function(){
+                    $("#next-button").prop("disabled", false);
+                });
+            });
+
+            function sendPostRequest() {
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+
+        </script>
+    </head>
+    <body>
+        <div class="header"></div>
+        <div class="content">
+            {% if participant_id %}
+            <a id="qualtrics-link" class="urllink" target="_blank" href="https://QUALTRICSURL?participant_id={{ participant_id }}">Post Study Survey</a>
+            {% else %}
+                <p>No participant ID set.</p>
+            {% endif %}
+        </div>
+        <div class="footer">
+            <button id="next-button" class="nextbutton" onclick="sendPostRequest()">Next</button>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Experiment Instructions</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        
+        <script>
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);                
+            });
+
+
+            function checkCheckboxes() {
+                var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                var checkedCount = 0;
+
+                for (var i = 0; i < checkboxes.length; i++) {
+                    if (checkboxes[i].checked) {
+                    checkedCount++;
+                    }
+                }
+                if (checkedCount === checkboxes.length) {
+                    $("#next-button").prop("disabled", false);
+                } else {
+                    $("#next-button").prop("disabled", true);
+                }
+            }
+
+            function sendPostRequest() {
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+        </script>
+       
+    </head>
+    <body>
+        <div class="header">Experiment Instructions</div>
+        <div class="content">
+            <ul>
+                <li>
+                    <input type="checkbox" id="checkbox0" onchange="checkCheckboxes()">
+                    <label for="checkbox0">Always read instructions aloud, check them one at a time.</label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox1" onchange="checkCheckboxes()">
+                  <label for="checkbox1">The experiment is going to be the same way as the trial.</label>
+                </li>
+
+                <li>
+                  <input type="checkbox" id="checkbox2" onchange="checkCheckboxes()">
+                  <label for="checkbox2">You are to select if signal <b>A</b> or <b>B</b> is the closest to <b>X</b>, you can only select one.</label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox3" onchange="checkCheckboxes()">
+                  <label for="checkbox3">If you have any questions, please ask now.</label>
+                  </li>
+                <li>
+                    <input type="checkbox" id="checkbox4" onchange="checkCheckboxes()">
+                    <label for="checkbox4">You will have to wear a noise cancelling headphones to mask any noises</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="checkbox5" onchange="checkCheckboxes()">
+                    <label for="checkbox5">You can take a break at any point in time. There will be a mandatory break every 8 minutes for a 2 minutes.</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="checkbox6" onchange="checkCheckboxes()">
+                    <label for="checkbox6">Keys indicated in brackets like: (A) / (B) / (X) can be pressed via the keyboard as well.</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="checkbox7" onchange="checkCheckboxes()">
+                    <label for="checkbox7">Tip: Closing your eyes might help focus on the signals </label>
+                </li>
+              </ul>
+            
+
+        </div>
+        <div class="footer">
+          <button id="next-button" class="nextbutton" onclick="sendPostRequest()">I Understand</button>
+        </div>
+    </body>
+</html>

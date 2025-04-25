@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Estimating Sensory Threshold</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        
+        <script>
+            var keySkip = false;
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);                
+            });
+
+
+            $(document).on('keydown', function(e) {
+                if(keySkip == true){
+                    return;
+                }
+                else {
+                    if (e.key === 'y' || e.key === 'Y' || e.key === '4') {
+                        calibrationResponse('yes');
+                    }
+                    else if (e.key === 'n' || e.key === 'N'|| e.key === '6') {
+                        calibrationResponse('no');
+                    }
+                }
+            });
+
+
+
+            function sendPostRequest() {
+
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+
+            function calibrationResponse(response) {
+                keySkip = true;
+                $("#yes-button").prop("disabled", true);
+                $("#no-button").prop("disabled", true);
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"quest_response", response: response})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if(data['result'] == "complete") {
+                        
+                        $("#next-button").prop("disabled", false);
+                        $("#yes-button").prop("disabled", true);
+                        $("#no-button").prop("disabled", true);
+                    }
+                    else
+                    {
+                        keySkip = false;
+                        $("#yes-button").prop("disabled", false);
+                        $("#no-button").prop("disabled", false);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+
+        </script>
+       
+    </head>
+    <body>
+        <div class="header">Phase 1 : Calibration</div>
+        <div class="content">
+            <p>Press <b>Yes (Y)</b> if you feel a electrical sensation or <b>No (N)</b> if you dont.</p>
+            <br/>
+            <div class="calibrationbuttondiv">
+                <button id="yes-button" class="calibrationbutton" onclick="calibrationResponse('yes')">YES</button>
+                <button id="no-button" class="calibrationbutton" onclick="calibrationResponse('no')">NO</button>
+            </div>
+        </div>
+        <div class="footer">
+          <button id="next-button" class="nextbutton" onclick="sendPostRequest()">Next</button>
+        </div>
+    </body>
+</html>

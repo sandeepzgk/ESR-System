@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Trial Instructions</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        
+        <script>
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);                
+            });
+
+
+            function checkCheckboxes() {
+                var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                var checkedCount = 0;
+
+                for (var i = 0; i < checkboxes.length; i++) {
+                    if (checkboxes[i].checked) {
+                    checkedCount++;
+                    }
+                }
+                if (checkedCount === checkboxes.length) {
+                    $("#next-button").prop("disabled", false);
+                } else {
+                    $("#next-button").prop("disabled", true);
+                }
+            }
+
+            function sendPostRequest() {
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+        </script>
+       
+    </head>
+    <body>
+        <div class="header">Trial Instructions</div>
+        <div class="content">
+            <ul>
+                <li>
+                    <input type="checkbox" id="checkbox0" onchange="checkCheckboxes()">
+                    <label for="checkbox0">Always read instructions aloud, check them one at a time.</label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox1" onchange="checkCheckboxes()">
+                  <label for="checkbox1">You are to select if signal <b>A</b> or <b>B</b> is the closest to <b>X</b></label>
+                </li>
+
+                <li>
+                  <input type="checkbox" id="checkbox2" onchange="checkCheckboxes()">
+                  <label for="checkbox2">You will not be able to select both or neither as answers</label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox3" onchange="checkCheckboxes()">
+                  <label for="checkbox3">You can play each signal as many times as you may need, in any order</label>
+                  </li>
+                <li>
+                    <input type="checkbox" id="checkbox5" onchange="checkCheckboxes()">
+                    <label for="checkbox5">You can change your answer prior to pressing the next signal button</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="checkbox6" onchange="checkCheckboxes()">
+                    <label for="checkbox6">Pressing next signal button offers you a new set of <b>A</b>, <b>B</b> and <b>X</b> signals</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="checkbox7" onchange="checkCheckboxes()">
+                    <label for="checkbox7">Keys indicated in brackets like: (A) / (B) / (X) can be pressed via the keyboard as well.</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="checkbox8" onchange="checkCheckboxes()">
+                    <label for="checkbox8">Tip: Closing your eyes might help focus on the signals </label>
+                </li>
+                <li>
+                <input type="checkbox" id="checkbox9" onchange="checkCheckboxes()">
+                <label for="checkbox9">Before continuing, ask the experimenter on how to hold the vibration device. You will have to hold this during the study.</label>
+                </li>
+              </ul>
+
+        </div>
+        <div class="footer">
+          <button id="next-button" class="nextbutton" onclick="sendPostRequest()">I Understand</button>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Experiment</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        
+        <script>
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);        
+                $("#next-signal-button").prop("disabled", true);  
+                window.selectedRadio = null;
+                
+                $("#A-radio, #B-radio").change(function() {
+                    // If either radio button is checked, enable the next-signal-button
+                    if ($("#A-radio").is(":checked") || $("#B-radio").is(":checked")) {
+                        $("#next-signal-button").prop("disabled", false);
+
+                        // Store the value of the selected radio button in the global variable
+                        window.selectedRadio = $(this).val();
+                        console.log(window.selectedRadio);
+                    }
+                });
+                
+            });
+
+            var keySkip = false;
+
+
+            $(document).on('keydown', function(e) {
+                if(keySkip == true){
+                    return;
+                }
+                else {
+                    if (e.key === 'a' || e.key === 'A'|| e.key === '2') {
+                        abxplayback('A'); 
+                    }
+                    else if (e.key === 'b' || e.key === 'B'|| e.key === '3') {
+                        abxplayback('B'); 
+                    }
+                    else if (e.key === 'x' || e.key === 'X'|| e.key === '1'){
+                        abxplayback('X');    
+                    }
+                }
+            });
+
+            function sendPostRequest() {
+
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+
+            function abxplayback(button) {
+                keySkip = true;
+
+                // Disable the corresponding button
+                $("#X-button").prop("disabled", true);
+                $("#A-button").prop("disabled", true);
+                $("#B-button").prop("disabled", true);
+
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"abx_play_request", button: button})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    keySkip = false;
+                    // Enable all the buttons
+                    $("#X-button").prop("disabled", false);
+                    $("#A-button").prop("disabled", false);
+                    $("#B-button").prop("disabled", false);
+                })
+                .catch(error => console.error('Error:', error));
+            }
+
+            function expt_response(){
+                // Disable the corresponding button
+                $("#X-button").prop("disabled", true);
+                $("#A-button").prop("disabled", true);
+                $("#B-button").prop("disabled", true);
+                $("#next-signal-button").prop("disabled", true);
+
+                // Disable the radio buttons
+                $("#A-radio").prop("disabled", true);
+                $("#B-radio").prop("disabled", true);
+
+                $("#A-radio").prop("checked", false);
+                $("#B-radio").prop("checked", false);
+
+                // Get the value of the selected radio button
+                var selectedRadio = window.selectedRadio;
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"experiment_response", selection: selectedRadio})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if(data['result'] == "complete")
+                    {
+                        $("#next-button").prop("disabled", false);
+                        keySkip = true;
+                    }
+                    else
+                    {
+                        // Enable all the buttons
+                        $("#X-button").prop("disabled", false);
+                        $("#A-button").prop("disabled", false);
+                        $("#B-button").prop("disabled", false);
+                        // Disable the radio buttons
+                        $("#A-radio").prop("disabled", false);
+                        $("#B-radio").prop("disabled", false);
+                    }
+
+                })
+                .catch(error => console.error('Error:', error));
+
+            }
+
+
+        </script>
+       
+    </head>
+    <body>
+        <div class="header">Phase 3 : Experiment</div>
+        <div class="content">
+            <div class="trialcontent">
+                <p>Select <b>A (A)</b> or <b>B (B)</b> that closely resembles signal <b>X (X)</b></p>
+                <br/>
+                <div class="calibrationbuttondiv">
+                    <button id="X-button" class="calibrationbutton" onclick="abxplayback('X')">X</button>
+                    <span style="display:inline-block; width:3em;">&nbsp;</span>
+                    <button id="A-button" class="calibrationbutton" onclick="abxplayback('A')">A</button>
+                    <button id="B-button" class="calibrationbutton" onclick="abxplayback('B')">B</button>
+                </div>
+                
+                <div class="radiobuttons">
+                    <p style="text-align: left;">X is most similar to:</p>
+                    <input type="radio" id="A-radio" name="similar" value="A">
+                    <label for="A-radio">A</label>
+                    <span style="display:inline-block; width:1em;"></span>
+                    <input type="radio" id="B-radio" name="similar" value="B">
+                    <label for="B-radio">B</label>
+                </div>
+                <div class="nextsignal">
+                    <button id="next-signal-button" class="calibrationbutton" onclick="expt_response()">Next Signal</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+          <button id="next-button" class="nextbutton" onclick="sendPostRequest()">Next</button>
+        </div>
+    </body>
+</html>

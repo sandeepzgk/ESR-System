@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>General Instructions and Consent</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        
+        <script>
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);                
+            });
+
+
+            function checkCheckboxes() {
+                var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                var checkedCount = 0;
+
+                for (var i = 0; i < checkboxes.length; i++) {
+                    if (checkboxes[i].checked) {
+                    checkedCount++;
+                    }
+                }
+                if (checkedCount === checkboxes.length) {
+                    $("#next-button").prop("disabled", false);
+                } else {
+                    $("#next-button").prop("disabled", true);
+                }
+            }
+
+            function sendPostRequest() {
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+        </script>
+       
+    </head>
+    <body>
+        <div class="header">Experiment Instructions</div>
+        <div class="content">
+            <ul>
+                <li>
+                  <input type="checkbox" id="checkbox0" onchange="checkCheckboxes()">
+                  <label for="checkbox0">Always read instructions aloud, check them one at a time.</label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox1" onchange="checkCheckboxes()">
+                  <label for="checkbox1">The experiment has 3 phases, 1. Calibration, 2. Trial Run and 3. Actual experiment.</label>
+                </li>
+
+                <li>
+                    <input type="checkbox" id="checkbox2" onchange="checkCheckboxes()">
+                    <label for="checkbox2">Prior to calibration, we will affix two electrodes on your <b>non</b> dominant hand.</label>
+                </li>
+              
+                <li>
+                  <input type="checkbox" id="checkbox3" onchange="checkCheckboxes()">
+                  <label for="checkbox3">We will calibrate the electrical signal sensitivity threshold. You may feel a small jolt, this is normal.</label>
+                </li>
+              
+                <li>
+                  <input type="checkbox" id="checkbox4" onchange="checkCheckboxes()">
+                  <label for="checkbox4">We will go through a few practice examples of the experimental task. Please feel free to ask any questions.</label>
+                </li>
+              
+                <li>
+                  <input type="checkbox" id="checkbox5" onchange="checkCheckboxes()">
+                  <label for="checkbox5">When you are ready, we will begin the full experiment. Please inform us if you experience any discomfort.</label>
+                </li>
+              
+                <li>
+                  <input type="checkbox" id="checkbox6" onchange="checkCheckboxes()">
+                  <label for="checkbox6">You may feel minor electrical sensations during the experiment. This is normal and safe.</label>
+                </li>
+              
+                <li>
+                  <input type="checkbox" id="checkbox7" onchange="checkCheckboxes()">
+                  <label for="checkbox7">Keys indicated in brackets like: (Y) / (N) can be pressed via the keyboard as well.</label>
+                </li>
+
+                <li>
+                  <input type="checkbox" id="checkbox8" onchange="checkCheckboxes()">
+                  <label for="checkbox8">Please let us know if you need to stop or take a break at any point.</label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox9" onchange="checkCheckboxes()">
+                  <label for="checkbox9">Tip: Closing your eyes might help focus on the signals </label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox10" onchange="checkCheckboxes()">
+                  <label for="checkbox10">Before pressing `I Understand`, ask the experimenter to affix the electrodes after sanitizing your hand.  Press it only after the full setup is complete. </label>
+                </li>
+                <li>
+                  <input type="checkbox" id="checkbox11" onchange="checkCheckboxes()">
+                  <label for="checkbox11">Always wear headphones after this stage, while pressing any stimulus. </label>
+                </li>
+              </ul>
+        </div>
+        <div class="footer">
+          <button id="next-button" class="nextbutton" onclick="sendPostRequest()">I Understand</button>
+        </div>
+    </body>
+</html>

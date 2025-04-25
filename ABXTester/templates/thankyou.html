@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Final Qualtrics Page</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $("#next-button").prop("disabled", true);
+                $("#qualtrics-link").click(function(){
+                    $("#next-button").prop("disabled", false);
+                });
+            });
+
+            function sendPostRequest() {
+                fetch('/event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({event:"nextpage"})
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .then(data => console.log(data))
+                .catch((error) => {
+                console.error('Error:', error);
+                });
+            }
+
+        </script>
+    </head>
+    <body>
+        <div class="header"></div>
+        <div class="content">
+            <h3>Thankyou for participating in our study!</h3>
+        </div>
+        <div class="footer">
+            
+        </div>
+    </body>
+</html>
