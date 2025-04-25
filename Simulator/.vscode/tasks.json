@@ -14,9 +14,17 @@
             "type": "npm",
             "script": "start",
             "dependsOn": "Install Dependencies",
-            "problemMatcher": [
-                "$eslint-stylish" // Adjust or remove if not configured
-            ],
+            "problemMatcher": {
+                "owner": "custom",
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Starting the development server",
+                    "endsPattern": "(Compiled successfully|Failed to compile|Compiled with warnings)"
+                }
+            },
             "isBackground": true,
             "presentation": {
                 "reveal": "silent",

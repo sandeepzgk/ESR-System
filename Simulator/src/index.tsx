@@ -1,7 +1,8 @@
-// src/index.tsx (corrected import)
+// src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import RCCircuitAnalysis from './modular.tsx'; // Use the correct filename and extension
+import './index.css'; // Import the Tailwind CSS
+import RCCircuitAnalysis from './modular.tsx';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

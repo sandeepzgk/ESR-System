@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch & Debug React App",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "Run React App",
+            "serverReadyAction": {
+                "pattern": "Local:\\s+http://localhost:\\d+",
+                "uriFormat": "http://localhost:3000",
+                "action": "openExternally"
+            },
+            "timeout": 30000
+        }
+    ]
+}
