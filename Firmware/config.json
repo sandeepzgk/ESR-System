@@ -1,0 +1,35 @@
+{
+    "network": {
+        "ssid": "SSID",
+        "password": "PWD",
+        "server_port": 80,
+        "max_retries": 5,
+        "initial_retry_delay_ms": 1500,
+        "max_retry_delay_ms": 30000,
+        "backoff_factor": 2
+    },
+    "pins": {
+        "bck": 10,
+        "lrck": 11,
+        "data": 9,
+        "mute": 8,
+        "amp_gain0": 14,
+        "amp_gain1": 15,
+        "amp_sd": 13,
+        "led": "LED",
+        "led1": 22,
+        "led2": 20,
+        "led3": 18,
+        "led4": 16
+    },
+    "audio": {
+        "sample_rate": 44100,
+        "bits_per_sample": 16,
+        "amplitude": 32767,
+        "frequency": 440,
+        "buffer_length": 1000,
+        "volume_percent": 0.125,
+        "dma_buffer_frames": 2048,
+        "playback_frames": 1024
+    }
+}
