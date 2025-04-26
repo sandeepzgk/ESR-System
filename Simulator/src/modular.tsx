@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import CircuitAnimation from './CircuitAnimation.tsx';
 
 // ===========================
 // ERROR BOUNDARY COMPONENT
@@ -1562,34 +1563,41 @@ const RCCircuitAnalysis = ({ initialParams = {} }) => {
           onReset={resetCircuit}
         />
 
-        {/* Parameter Controls */}
-        <div className="bg-gray-100 p-4 rounded-lg mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-semibold">Circuit Parameters</h2>
-            <button
-              onClick={resetCircuit}
-              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
-            >
-              Reset Parameters
-            </button>
-          </div>
+        
+<div className="bg-gray-100 p-4 rounded-lg mb-6">
+  <div className="flex justify-between items-center mb-2">
+    <h2 className="text-lg font-semibold">Circuit Parameters</h2>
+    <button
+      onClick={resetCircuit}
+      className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
+    >
+      Reset Parameters
+    </button>
+  </div>
+  
+  <div className="flex flex-col md:flex-row">
+    <div className="flex-grow">
+      {['voltage', 'resistance', 'capacitance', 'frequency'].map(paramName => (
+        <ParameterControl
+          key={paramName}
+          paramName={paramName}
+          params={params}
+          textValues={textValues}
+          onParamChange={updateParameter}
+          onTextChange={handleTextChange}
+          hasValidationErrors={getParamValidationState(paramName)}
+        />
+      ))}
+    </div>
+    
+    {/* Add Circuit Animation here */}
+    <CircuitAnimation />
+  </div>
 
-          {['voltage', 'resistance', 'capacitance', 'frequency'].map(paramName => (
-            <ParameterControl
-              key={paramName}
-              paramName={paramName}
-              params={params}
-              textValues={textValues}
-              onParamChange={updateParameter}
-              onTextChange={handleTextChange}
-              hasValidationErrors={getParamValidationState(paramName)}
-            />
-          ))}
-
-          <div className="mt-2 text-xs text-gray-500 italic">
-            Note: All calculations assume pure sine waves in AC steady state.
-          </div>
-        </div>
+  <div className="mt-2 text-xs text-gray-500 italic">
+    Note: All calculations assume pure sine waves in AC steady state.
+  </div>
+</div>
 
         {/* Frequency Response Analysis */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">

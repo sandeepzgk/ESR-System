@@ -1,0 +1,27 @@
+.circuit-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .svg-container {
+    position: relative;
+    width: 100%;
+  }
+  
+  .circuit-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  
+  .animation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Allow interaction with elements beneath */
+    z-index: 10;
+  }
+  
+ 
