@@ -1,8 +1,7 @@
-// src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css'; // Import the Tailwind CSS
-import RCCircuitAnalysis from './modular.tsx';
+import RCCircuitAnalysis from './RCCircuitAnalysis'; // No need for .tsx extension with tsconfig
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
