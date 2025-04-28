@@ -1,23 +1,18 @@
 import React, { useRef, useEffect } from 'react';
 import { FrequencyResponseData, CircuitResults } from '../types';
 
-// Props for FrequencyResponseChart
 interface FrequencyResponseChartProps {
   frequencyResponseData: FrequencyResponseData;
   results: CircuitResults;
 }
 
-// Optimized frequency response chart component
-const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ 
-  frequencyResponseData, 
-  results 
-}) => {
+const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequencyResponseData, results }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { data, transitionFrequency, currentFrequency, error } = frequencyResponseData;
   const { wRC } = results;
 
   // Track rendering to avoid unnecessary redraws
-  const renderCountRef = useRef(0);
+  const renderCountRef = useRef<number>(0);
 
   // Define drawing functions inside useEffect to avoid dependency issues
   useEffect(() => {
@@ -31,14 +26,59 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      // Improved margins to prevent text cut-off
       const width = canvas.width;
       const height = canvas.height;
-      const margin = { top: 30, right: 70, bottom: 50, left: 70 };
+      const margin = { 
+        top: 70,     // Increased top margin for labels above chart
+        right: 120,  // Increased right margin for impedance values
+        bottom: 80,  // Increased bottom margin for frequency labels
+        left: 120    // Increased left margin for current/phase labels
+      };
       const plotWidth = width - margin.left - margin.right;
       const plotHeight = height - margin.top - margin.bottom;
 
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
+      
+      // Draw grid lines first (behind all other elements)
+      const drawGrid = () => {
+        ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+        ctx.lineWidth = 0.5;
+        
+        // Vertical grid lines (logarithmic for frequency)
+        for (let i = Math.ceil(logMin); i <= Math.floor(logMax); i++) {
+          const tickFreq = Math.pow(10, i);
+          const x = margin.left + (Math.log10(tickFreq) - logMin) / (logMax - logMin) * plotWidth;
+          
+          ctx.beginPath();
+          ctx.moveTo(x, margin.top);
+          ctx.lineTo(x, height - margin.bottom);
+          ctx.stroke();
+          
+          // Additional lines between major log divisions (2, 3, 4, 5, etc.)
+          for (let j = 2; j <= 9; j++) {
+            const minorTickFreq = Math.pow(10, i-1) * j;
+            if (minorTickFreq >= minFreq && minorTickFreq <= maxFreq) {
+              const minorX = margin.left + (Math.log10(minorTickFreq) - logMin) / (logMax - logMin) * plotWidth;
+              ctx.beginPath();
+              ctx.moveTo(minorX, margin.top);
+              ctx.lineTo(minorX, height - margin.bottom);
+              ctx.stroke();
+            }
+          }
+        }
+        
+        // Horizontal grid lines
+        const horizontalLines = 10; // Number of horizontal grid lines
+        for (let i = 0; i <= horizontalLines; i++) {
+          const y = margin.top + (i / horizontalLines) * plotHeight;
+          ctx.beginPath();
+          ctx.moveTo(margin.left, y);
+          ctx.lineTo(width - margin.right, y);
+          ctx.stroke();
+        }
+      };
 
       // If there's an error, show error message
       if (error) {
@@ -90,8 +130,9 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
       const validCurrents = data.map(d => d.current).filter(c => isFinite(c) && !isNaN(c));
       const validImpedances = data.map(d => d.impedance).filter(i => isFinite(i) && !isNaN(i));
 
+      // Better calculation of maxCurrent to avoid repetitive values
       const maxCurrent = validCurrents.length > 0 ?
-        Math.max(...validCurrents, 0.01) * 1.2 : 0.01;
+        Math.max(...validCurrents) * 1.5 : 0.01;
       const maxImpedance = validImpedances.length > 0 ?
         Math.max(...validImpedances, 100) * 1.2 : 100;
 
@@ -106,13 +147,16 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
           Math.abs(closest.frequency - currentFrequency) ? point : closest;
       }, data[0]);
 
-      // Helper functions for drawing the chart
+      // Now draw the grid
+      drawGrid();
+
+      // Draw chart frame with improved spacing
       const drawChartFrame = () => {
         // Title
-        ctx.fillStyle = 'black';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
+        //ctx.fillStyle = 'black';
+        //ctx.font = 'bold 16px Arial';
+        //ctx.textAlign = 'center';
+        //ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
 
         // X-axis
         ctx.strokeStyle = '#999';
@@ -122,19 +166,20 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.lineTo(width - margin.right, height - margin.bottom);
         ctx.stroke();
 
-        // X-axis label
+        // X-axis label - positioned higher to avoid overlap
         ctx.fillStyle = 'black';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Frequency (Hz)', width / 2, height - 10);
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText('Frequency (Hz)', width *0.95, height - margin.bottom / 2 - 10);
 
-        // X-axis ticks with safety checks
+        // X-axis ticks with safety checks and improved spacing
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
+        ctx.font = '12px Arial';
 
         // Determine reasonable tick spacing
         const logSpan = logMax - logMin;
-        const maxTicks = 10; // Prevent too many ticks
+        const maxTicks = 6; // Reduced number of ticks to prevent crowding
         let tickStep = 1; // Default to every power of 10
 
         if (logSpan > maxTicks) {
@@ -165,10 +210,10 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
               tickLabel = (tickFreq / 1e3).toFixed(0) + 'k';
             }
 
-            ctx.fillText(tickLabel, x, height - margin.bottom + 8);
+            // Position tick labels with more space
+            ctx.fillText(tickLabel, x, height - margin.bottom + 10);
           } catch (error) {
             console.error("Error drawing tick:", error);
-            // Continue with next tick
           }
         }
 
@@ -178,11 +223,18 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.lineTo(margin.left, height - margin.bottom);
         ctx.stroke();
 
-        ctx.fillStyle = '#0066cc';
-        ctx.textAlign = 'right';
+        // Move labels above the chart
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        
+        // Current label (blue)
+        ctx.fillStyle = '#0066cc';
         ctx.font = 'bold 12px Arial';
-        ctx.fillText('Current / Phase', margin.left - 10, margin.top - 15);
+        ctx.fillText('Current (normalized, A/Ω)', margin.left, margin.top - 40);
+        
+        // Phase angle label (purple)
+        ctx.fillStyle = '#9933cc';
+        ctx.fillText('Phase Angle (°)', width / 2, margin.top - 40);
 
         // Right y-axis (Impedance)
         ctx.beginPath();
@@ -190,11 +242,91 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.lineTo(width - margin.right, height - margin.bottom);
         ctx.stroke();
 
+        // Impedance label (orange) - moved above
         ctx.fillStyle = '#cc6600';
-        ctx.textAlign = 'left';
-        ctx.fillText('Impedance', width - margin.right + 10, margin.top - 15);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('Impedance (Ω)', width - margin.right, margin.top - 40);
+
+        // Add Y-axis tick marks with better scaling
+        const addYAxisTicks = () => {
+          // Left Y-axis for Current (blue)
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#0066cc';
+          
+          // Better current tick values
+          // Use 5 ticks with dynamically calculated values
+          const currentTickCount = 5;
+          for (let i = 0; i < currentTickCount; i++) {
+            const value = i * (maxCurrent / (currentTickCount - 1));
+            const y = height - margin.bottom - (value / maxCurrent * plotHeight);
+            
+            // Ensure y is within chart bounds
+            if (y >= margin.top && y <= height - margin.bottom) {
+              ctx.beginPath();
+              ctx.moveTo(margin.left - 5, y);
+              ctx.lineTo(margin.left, y);
+              ctx.stroke();
+              
+              // Format with appropriate precision based on value
+              let formattedValue = value.toFixed(4);
+              if (value >= 0.01) formattedValue = value.toFixed(2);
+              if (value >= 0.1) formattedValue = value.toFixed(1);
+              if (value >= 1) formattedValue = value.toFixed(0);
+              
+              ctx.fillText(formattedValue, margin.left - 8, y);
+            }
+          }
+          
+          // Add Phase Angle ticks (purple)
+          ctx.fillStyle = '#9933cc';
+          // Use degree markers from -90 to +90
+          for (let degree = -90; degree <= 90; degree += 30) {
+            // Map phase angle to y-coordinate
+            const y = height - margin.bottom - ((degree + 90) / 180 * plotHeight);
+            
+            // Only draw if in chart bounds
+            if (y >= margin.top && y <= height - margin.bottom) {
+              ctx.beginPath();
+              ctx.moveTo(margin.left - 35, y);
+              ctx.lineTo(margin.left - 30, y);
+              ctx.stroke();
+              ctx.fillText(degree + "°", margin.left - 38, y);
+            }
+          }
+          
+          // Right Y-axis (Impedance)
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#cc6600';
+          
+          // Make impedance ticks more meaningful
+          const impTickCount = 5;
+          for (let i = 0; i < impTickCount; i++) {
+            const value = i * (maxImpedance / (impTickCount - 1));
+            const y = height - margin.bottom - (value / maxImpedance * plotHeight);
+            
+            if (y >= margin.top && y <= height - margin.bottom) {
+              ctx.beginPath();
+              ctx.moveTo(width - margin.right, y);
+              ctx.lineTo(width - margin.right + 5, y);
+              ctx.stroke();
+              
+              // Format impedance values
+              let formatted = value.toFixed(0) + ' Ω';
+              if (value >= 1000) formatted = (value/1000).toFixed(1) + ' kΩ';
+              
+              ctx.fillText(formatted, width - margin.right + 8, y);
+            }
+          }
+        };
+        
+        // Add Y-axis ticks
+        addYAxisTicks();
       };
 
+      // Draw impedance curve
       const drawImpedanceCurve = () => {
         if (!maxImpedance || maxImpedance <= 0) return;
 
@@ -226,20 +358,15 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
             }
           } catch (error) {
             console.error("Error drawing impedance point:", error);
-            // Continue with next point
           }
         }
 
         if (!isFirstPoint) { // Only stroke if we've added points
           ctx.stroke();
         }
-
-        // Label
-        ctx.fillStyle = '#cc6600';
-        ctx.textAlign = 'left';
-        ctx.fillText('Impedance (Ω)', margin.left + plotWidth + 10, margin.top);
       };
 
+      // Draw current curve
       const drawCurrentCurve = () => {
         if (!maxCurrent || maxCurrent <= 0) return;
 
@@ -271,20 +398,15 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
             }
           } catch (error) {
             console.error("Error drawing current point:", error);
-            // Continue with next point
           }
         }
 
         if (!isFirstPoint) { // Only stroke if we've added points
           ctx.stroke();
         }
-
-        // Label
-        ctx.fillStyle = '#0066cc';
-        ctx.textAlign = 'right';
-        ctx.fillText('Current (normalized)', margin.left - 10, margin.top);
       };
 
+      // Draw phase curve
       const drawPhaseCurve = () => {
         ctx.strokeStyle = '#9933cc';
         ctx.lineWidth = 2;
@@ -303,7 +425,8 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
             const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
             // Limit the y value to prevent drawing outside the chart area
-            const rawY = height - margin.bottom - (d.phaseAngle / 90 * plotHeight);
+            // Map phase angle range (-90 to +90 degrees) to plot height
+            const rawY = height - margin.bottom - ((d.phaseAngle + 90) / 180 * plotHeight);
             const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
 
             if (isFirstPoint) {
@@ -314,20 +437,15 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
             }
           } catch (error) {
             console.error("Error drawing phase point:", error);
-            // Continue with next point
           }
         }
 
         if (!isFirstPoint) { // Only stroke if we've added points
           ctx.stroke();
         }
-
-        // Label
-        ctx.fillStyle = '#9933cc';
-        ctx.textAlign = 'right';
-        ctx.fillText('Phase Angle (°)', margin.left - 10, margin.top + 20);
       };
 
+      // Draw operating point
       const drawOperatingPoint = () => {
         try {
           // Check for valid data
@@ -354,8 +472,8 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
           ctx.arc(opX, opCurrentY, 5, 0, 2 * Math.PI);
           ctx.fill();
 
-          // Phase angle point
-          const rawPhaseY = height - margin.bottom - (currentDataPoint.phaseAngle / 90 * plotHeight);
+          // Phase angle point - adjusted for new range mapping
+          const rawPhaseY = height - margin.bottom - ((currentDataPoint.phaseAngle + 90) / 180 * plotHeight);
           const opPhaseY = Math.max(margin.top, Math.min(height - margin.bottom, rawPhaseY));
 
           ctx.fillStyle = '#9933cc';
@@ -373,12 +491,13 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Labels
+          // Improve frequency label positioning
           ctx.fillStyle = 'black';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
+          ctx.font = '12px Arial';
 
-          // Format labels for extreme values
+          // Format labels with precision
           let freqLabel = currentDataPoint.frequency.toFixed(2) + " Hz";
           if (currentDataPoint.frequency >= 1e6 || currentDataPoint.frequency <= 1e-3) {
             freqLabel = currentDataPoint.frequency.toExponential(2) + " Hz";
@@ -386,13 +505,50 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
             freqLabel = (currentDataPoint.frequency / 1e3).toFixed(2) + " kHz";
           }
 
-          ctx.fillText(`f = ${freqLabel}`, opX, height - margin.bottom + 15);
-          ctx.fillText(`ωRC = ${currentDataPoint.wRC.toFixed(2)}`, opX, height - margin.bottom + 30);
+          // Calculate ωRC using π for more accuracy
+          // display ωRC = 2πf*RC when the value is close to π
+          const calculatedWRC = currentDataPoint.wRC;
+          let wrcLabel = calculatedWRC.toFixed(2);
+          if (Math.abs(calculatedWRC - Math.PI) < 0.1) {
+            wrcLabel = "π";
+          } else if (Math.abs(calculatedWRC - 2*Math.PI) < 0.1) {
+            wrcLabel = "2π";
+          } else if (Math.abs(calculatedWRC - Math.PI/2) < 0.05) {
+            wrcLabel = "π/2";
+          }
+
+          // Add background to labels for better visibility
+          const labelBgPadding = 4;
+          
+          // Frequency label - positioned above Frequency (Hz) text
+          const freqLabelWidth = ctx.measureText(`f = ${freqLabel}`).width;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.fillRect(
+            opX - freqLabelWidth/2 - labelBgPadding, 
+            height - margin.bottom +20,
+            freqLabelWidth + labelBgPadding*2, 
+            16
+          );
+          
+          // ωRC label - positioned in a better location
+          const wrcLabelWidth = ctx.measureText(`ωRC = ${wrcLabel}`).width;
+          ctx.fillRect(
+            opX - wrcLabelWidth/2 - labelBgPadding, 
+            height - margin.bottom + 35 - 12, 
+            wrcLabelWidth + labelBgPadding*2, 
+            16
+          );
+          
+          // Draw the text on top of the background
+          ctx.fillStyle = 'black';
+          ctx.fillText(`f = ${freqLabel}`, opX, height - margin.bottom + 25);
+          ctx.fillText(`ωRC = ${wrcLabel}`, opX, height - margin.bottom + 45);
         } catch (error) {
           console.error("Error drawing operating point:", error);
         }
       };
 
+      // Draw transition point
       const drawTransitionPoint = () => {
         try {
           // Check for valid transition frequency
@@ -413,10 +569,21 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
               ctx.stroke();
               ctx.setLineDash([]);
 
+              // Add background for better visibility
+              const labelWidth = ctx.measureText('ωRC = 1').width;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+              ctx.fillRect(
+                transitionX - labelWidth/2 - 4, 
+                margin.top - 24, 
+                labelWidth + 8, 
+                16
+              );
+              
               ctx.fillStyle = 'red';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'bottom';
-              ctx.fillText('ωRC = 1', transitionX, margin.top - 5);
+              ctx.font = '12px Arial';
+              ctx.fillText('ωRC = 1', transitionX, margin.top - 10);
             }
           }
         } catch (error) {
@@ -424,43 +591,59 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         }
       };
 
+      // Draw legend in bottom left outside of chart area
       const drawLegend = () => {
         try {
-          const legendX = width - margin.right - 120;
-          const legendY = margin.top + 20;
+          // Position legend in the bottom left outside of the charting area
+          const legendX = margin.left - 100; // Adjusted for better visibility
+          const legendY = height - margin.bottom + 30;
+          const legendSpacing = 12; // Reduced spacing for more compact legend
+          const lineLength = 15; // Shorter lines
+
+          ctx.font = '11px Arial'; // Smaller font
+          
+          // Create a more compact legend layout
+          // Background for legend with rounded corners
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.beginPath();
+         
+          
+          ctx.strokeStyle = '#ccc';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
 
           // Impedance
           ctx.strokeStyle = '#cc6600';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(legendX, legendY);
-          ctx.lineTo(legendX + 20, legendY);
+          ctx.lineTo(legendX + lineLength, legendY);
           ctx.stroke();
 
           ctx.fillStyle = '#cc6600';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText('Impedance', legendX + 25, legendY);
+          ctx.fillText('Impedance', legendX + lineLength + 5, legendY);
 
           // Current
           ctx.strokeStyle = '#0066cc';
           ctx.beginPath();
-          ctx.moveTo(legendX, legendY + 20);
-          ctx.lineTo(legendX + 20, legendY + 20);
+          ctx.moveTo(legendX, legendY + legendSpacing);
+          ctx.lineTo(legendX + lineLength, legendY + legendSpacing);
           ctx.stroke();
 
           ctx.fillStyle = '#0066cc';
-          ctx.fillText('Current', legendX + 25, legendY + 20);
+          ctx.fillText('Current', legendX + lineLength + 5, legendY + legendSpacing);
 
           // Phase
           ctx.strokeStyle = '#9933cc';
           ctx.beginPath();
-          ctx.moveTo(legendX, legendY + 40);
-          ctx.lineTo(legendX + 20, legendY + 40);
+          ctx.moveTo(legendX, legendY + 2 * legendSpacing);
+          ctx.lineTo(legendX + lineLength, legendY + 2 * legendSpacing);
           ctx.stroke();
 
           ctx.fillStyle = '#9933cc';
-          ctx.fillText('Phase Angle', legendX + 25, legendY + 40);
+          ctx.fillText('Phase Angle', legendX + lineLength + 5, legendY + 2 * legendSpacing);
         } catch (error) {
           console.error("Error drawing legend:", error);
         }
@@ -493,11 +676,17 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
         drawLegend();
 
-        // Add note about sine wave assumptions
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        // Add note about sine wave assumptions - made more visible with background
+        const noteText = 'Note: All calculations assume pure sine waves in AC steady state';
+        const noteWidth = ctx.measureText(noteText).width;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(width - margin.right - noteWidth - 15, height - 15, noteWidth + 10, 15);
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';  // Made text darker for better readability
         ctx.font = 'italic 10px Arial';
         ctx.textAlign = 'right';
-        ctx.fillText('Note: All calculations assume pure sine waves in AC steady state', width - margin.right, height - 5);
+        ctx.fillText(noteText, width - margin.right - 10, height - 5);
       } catch (chartError) {
         console.error("Chart rendering error:", chartError);
         ctx.fillStyle = 'red';
@@ -512,7 +701,6 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
     // Clean up function
     return () => {
-      // Access canvasRef.current directly in cleanup
       const canvasElement = canvasRef.current;
       if (canvasElement) {
         const ctx = canvasElement.getContext('2d');
@@ -537,8 +725,8 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
         <canvas
           ref={canvasRef}
-          width="700"
-          height="400"
+          width="850"
+          height="550"
           className="border border-gray-300 rounded mx-auto"
         />
       </div>
@@ -547,14 +735,15 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
   return (
     <div className="mb-4">
+      {/* Increased height for legend below chart */}
       <canvas
         ref={canvasRef}
-        width="700"
-        height="400"
-        className="border border-gray-300 rounded mx-auto"
+        width="850"
+        height="550" // Increased height to accommodate legend below chart
+        className="border border-gray-300 rounded mx-auto w-full"
       />
 
-      <div className="mt-2 text-sm text-center text-gray-600">
+      <div className="mt-2 text-sm text-left text-gray-600">
         This graph shows how the circuit responds across a frequency range. The blue line shows current,
         the orange line shows impedance, and the purple line shows phase angle. The vertical red line marks
         the transition point (ωRC = 1) between resistive and capacitive regimes.
