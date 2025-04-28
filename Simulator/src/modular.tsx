@@ -1,28 +1,36 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import CircuitAnimation from './CircuitAnimation.tsx';
 
 // ===========================
 // ERROR BOUNDARY COMPONENT
 // ===========================
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error("Circuit analysis error:", error, errorInfo);
   }
 
-  resetError = () => {
+  resetError = (): void => {
     this.setState({ hasError: false, error: null });
   };
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.hasError) {
       return (
         <div className="p-4 border-2 border-red-500 rounded-lg bg-red-50 text-red-700">
@@ -51,7 +59,18 @@ class ErrorBoundary extends React.Component {
 // ===========================
 
 // Physical validation limits for parameters
-const physicalLimits = {
+interface PhysicalLimits {
+  minFrequency: number;
+  maxFrequency: number;
+  minResistance: number;
+  maxResistance: number;
+  minCapacitance: number;
+  maxCapacitance: number;
+  minVoltage: number;
+  maxVoltage: number;
+}
+
+const physicalLimits: PhysicalLimits = {
   minFrequency: 0.001, // Hz
   maxFrequency: 1e9,   // 1 GHz
   minResistance: 1e-6, // 1 µΩ
@@ -62,8 +81,32 @@ const physicalLimits = {
   maxVoltage: 1e6      // 1 MV
 };
 
+// Define interfaces for unit system
+interface UnitRange {
+  [key: string]: [number, number];
+}
+
+interface UnitFactors {
+  [key: string]: number;
+}
+
+interface UnitDefinition {
+  units: string[];
+  factors: UnitFactors;
+  ranges: UnitRange;
+}
+
+interface UnitSystem {
+  voltage: UnitDefinition;
+  resistance: UnitDefinition;
+  capacitance: UnitDefinition;
+  frequency: UnitDefinition;
+  safeCurrentThreshold: UnitDefinition;
+  [key: string]: UnitDefinition;
+}
+
 // Simplified unit system with conversion factors
-const unitSystem = {
+const unitSystem: UnitSystem = {
   voltage: {
     units: ['μV', 'mV', 'V'],
     factors: { 'μV': 1e-6, 'mV': 1e-3, 'V': 1 },
@@ -91,10 +134,56 @@ const unitSystem = {
   }
 };
 
+// Unified format function for all units
+const formatValue = (value: number, unit: string): string => {
+  if (value === 0) return `0 ${unit}`;
+  if (!isFinite(value) || isNaN(value)) return `-- ${unit}`;
+
+  // Common prefixes for both large and small values
+  const prefixes: Record<string, string> = {
+    '-12': 'p', '-9': 'n', '-6': 'μ', '-3': 'm',
+    '0': '', '3': 'k', '6': 'M', '9': 'G'
+  };
+
+  // Scale value to appropriate prefix
+  const scale = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
+  const scaledValue = value / Math.pow(10, scale);
+  const prefix = prefixes[scale.toString()] || '';
+
+  return `${scaledValue.toFixed(2)} ${prefix}${unit}`;
+};
+
+// Format with scientific notation for extreme values
+const formatValueScientific = (value: number, unit: string): string => {
+  if (value === 0) return `0 ${unit}`;
+  if (!isFinite(value) || isNaN(value)) return `-- ${unit}`;
+
+  if (Math.abs(value) < 0.01 || Math.abs(value) > 10000) {
+    return `${value.toExponential(2)} ${unit}`;
+  }
+
+  return `${value.toFixed(2)} ${unit}`;
+};
+
+// Define interface for circuit parameters validation
+interface CircuitParametersValidation {
+  isValid: boolean;
+  errors: string[];
+}
+
+interface NormalizedValues {
+  voltage: number;
+  resistance: number;
+  capacitance: number;
+  frequency: number;
+  safeCurrentThreshold: number;
+  [key: string]: number;
+}
+
 // Validates if parameters make physical sense together
-const validateCircuitParameters = (normalizedValues) => {
+const validateCircuitParameters = (normalizedValues: NormalizedValues): CircuitParametersValidation => {
   const { voltage, resistance, capacitance, frequency } = normalizedValues;
-  const errors = [];
+  const errors: string[] = [];
 
   // Check individual parameters against physical limits
   if (frequency < physicalLimits.minFrequency || frequency > physicalLimits.maxFrequency) {
@@ -137,57 +226,86 @@ const validateCircuitParameters = (normalizedValues) => {
   };
 };
 
-// Unified format function for all units
-const formatValue = (value, unit) => {
-  if (value === 0) return `0 ${unit}`;
-  if (!isFinite(value) || isNaN(value)) return `-- ${unit}`;
+// Define a type for parameter values with units
+interface ParameterWithUnit {
+  value: number;
+  unit: string;
+}
 
-  // Common prefixes for both large and small values
-  const prefixes = {
-    '-12': 'p', '-9': 'n', '-6': 'μ', '-3': 'm',
-    '0': '', '3': 'k', '6': 'M', '9': 'G'
-  };
+// Parameter state interface for the RC circuit hook
+interface ParameterState {
+  voltage: ParameterWithUnit;
+  resistance: ParameterWithUnit;
+  capacitance: ParameterWithUnit;
+  frequency: ParameterWithUnit;
+  safeCurrentThreshold: ParameterWithUnit;
+  [key: string]: ParameterWithUnit;
+}
 
-  // Scale value to appropriate prefix
-  const scale = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
-  const scaledValue = value / Math.pow(10, scale);
-  const prefix = prefixes[scale] || '';
+// Text state interface
+interface TextValues {
+  voltage: string;
+  resistance: string;
+  capacitance: string;
+  frequency: string;
+  safeCurrentThreshold: string;
+  [key: string]: string;
+}
 
-  return `${scaledValue.toFixed(2)} ${prefix}${unit}`;
-};
+// Define types for calculation results
+interface CircuitResults {
+  wRC: number;
+  omega: number;
+  voltageRMS: number;
+  currentR: number;
+  currentC: number;
+  currentTotal: number;
+  phaseAngle: number;
+  powerFactor: number;
+  impedance: number;
+  resistivePercent: number;
+  capacitivePercent: number;
+  isSafe: boolean;
+  values: NormalizedValues;
+  calculationError?: string;
+}
 
-// Format with scientific notation for extreme values
-const formatValueScientific = (value, unit) => {
-  if (value === 0) return `0 ${unit}`;
-  if (!isFinite(value) || isNaN(value)) return `-- ${unit}`;
+// Define types for frequency response data
+interface FrequencyDataPoint {
+  frequency: number;
+  impedance: number;
+  current: number;
+  phaseAngle: number;
+  wRC: number;
+}
 
-  if (Math.abs(value) < 0.01 || Math.abs(value) > 10000) {
-    return `${value.toExponential(2)} ${unit}`;
-  }
-
-  return `${value.toFixed(2)} ${unit}`;
-};
+interface FrequencyResponseData {
+  data: FrequencyDataPoint[];
+  transitionFrequency: number;
+  currentFrequency: number;
+  error: string | null;
+}
 
 // ===========================
 // CUSTOM HOOKS - OPTIMIZED
 // ===========================
 
 // Core RC Circuit Hook with optimized calculation strategy
-const useRCCircuit = (initialParams = {}) => {
-  // Default parameters with units
-  const defaultParams = {
+const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
+  // Default parameters with units - wrapped in useMemo to avoid dependency issues
+  const defaultParams = useMemo<ParameterState>(() => ({
     voltage: { value: 1, unit: 'V' },
     resistance: { value: 5, unit: 'kΩ' },
     capacitance: { value: 50, unit: 'nF' },
     frequency: { value: 1000, unit: 'Hz' },
     safeCurrentThreshold: { value: 500, unit: 'μA' }
-  };
+  }), []);
 
   // Merge provided parameters with defaults
-  const initialState = { ...defaultParams, ...initialParams };
+  const initialState = useMemo(() => ({ ...defaultParams, ...initialParams }), [defaultParams, initialParams]);
 
   // State for circuit parameters
-  const [params, setParams] = useState({
+  const [params, setParams] = useState<ParameterState>({
     voltage: initialState.voltage,
     resistance: initialState.resistance,
     capacitance: initialState.capacitance,
@@ -196,7 +314,7 @@ const useRCCircuit = (initialParams = {}) => {
   });
 
   // Text input state
-  const [textValues, setTextValues] = useState({
+  const [textValues, setTextValues] = useState<TextValues>({
     voltage: initialState.voltage.value.toString(),
     resistance: initialState.resistance.value.toString(),
     capacitance: initialState.capacitance.value.toString(),
@@ -205,11 +323,11 @@ const useRCCircuit = (initialParams = {}) => {
   });
 
   // Error state for validation feedback
-  const [validationErrors, setValidationErrors] = useState([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [hasCalculationError, setHasCalculationError] = useState(false);
 
   // Get normalized value (convert to base units)
-  const getNormalizedValue = (paramName) => {
+  const getNormalizedValue = useCallback((paramName: string): number => {
     if (!params[paramName]) {
       console.error(`Parameter '${paramName}' not found in params`);
       return 0;
@@ -230,16 +348,16 @@ const useRCCircuit = (initialParams = {}) => {
     }
 
     return value * system.factors[unit];
-  };
+  }, [params]);
 
   // All normalized parameter values computed at once
-  const normalizedValues = useMemo(() => ({
+  const normalizedValues = useMemo<NormalizedValues>(() => ({
     voltage: getNormalizedValue('voltage'),
     resistance: getNormalizedValue('resistance'),
     capacitance: getNormalizedValue('capacitance'),
     frequency: getNormalizedValue('frequency'),
     safeCurrentThreshold: getNormalizedValue('safeCurrentThreshold')
-  }), [params]);
+  }), [getNormalizedValue]); // Remove params from dependencies since getNormalizedValue already has it
 
   // Validate parameters
   useEffect(() => {
@@ -248,7 +366,7 @@ const useRCCircuit = (initialParams = {}) => {
   }, [normalizedValues]);
 
   // Calculate all circuit results in one go using memoization
-  const results = useMemo(() => {
+  const results = useMemo<CircuitResults>(() => {
     try {
       setHasCalculationError(false);
 
@@ -308,15 +426,15 @@ const useRCCircuit = (initialParams = {}) => {
         wRC: 0, omega: 0, voltageRMS: 0, currentR: 0, currentC: 0, currentTotal: 0,
         phaseAngle: 0, powerFactor: 0, impedance: 0, resistivePercent: 0, capacitivePercent: 0,
         isSafe: true, values: normalizedValues,
-        calculationError: error.message
+        calculationError: error instanceof Error ? error.message : String(error)
       };
     }
   }, [normalizedValues]);
 
   // Calculate frequency response data with memoization and error handling
-  const frequencyResponseData = useMemo(() => {
+  const frequencyResponseData = useMemo<FrequencyResponseData>(() => {
     const points = 100;
-    const freqData = [];
+    const freqData: FrequencyDataPoint[] = [];
     try {
       // Defensive check for normalized values
       if (!normalizedValues ||
@@ -369,18 +487,18 @@ const useRCCircuit = (initialParams = {}) => {
         data: [],
         transitionFrequency: 0,
         currentFrequency: 0,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
-  }, [normalizedValues.frequency, normalizedValues.resistance, normalizedValues.capacitance]);
+  }, [normalizedValues]);
 
   // Helper function to determine circuit regime
-  const determineRegime = () => {
+  const determineRegime = useCallback((): string => {
     if (!isFinite(results.wRC) || isNaN(results.wRC)) return "Indeterminate";
     if (results.wRC < 1) return "Resistive";
     if (results.wRC > 1) return "Capacitive";
     return "Transition Point";
-  };
+  }, [results.wRC]);
 
   // Reset to default values (error recovery)
   const resetCircuit = useCallback(() => {
@@ -402,10 +520,10 @@ const useRCCircuit = (initialParams = {}) => {
 
     setValidationErrors([]);
     setHasCalculationError(false);
-  }, []);
+  }, [defaultParams]);
 
   // Unified parameter update function with validation
-  const updateParameter = (paramName, updates) => {
+  const updateParameter = useCallback((paramName: string, updates: Partial<ParameterWithUnit>): void => {
     if (!paramName || !updates) {
       console.error('Invalid parameters for updateParameter');
       return;
@@ -423,7 +541,7 @@ const useRCCircuit = (initialParams = {}) => {
       if ('value' in updates) {
         setTextValues(prev => ({
           ...prev,
-          [paramName]: updates.value.toString()
+          [paramName]: updates.value!.toString()
         }));
       }
 
@@ -431,8 +549,8 @@ const useRCCircuit = (initialParams = {}) => {
       if ('unit' in updates) {
         // Add defensive checks for system and ranges
         const system = unitSystem[paramName] || { ranges: {} };
-        const range = (system.ranges && system.ranges[updates.unit])
-          ? system.ranges[updates.unit]
+        const range = (system.ranges && system.ranges[updates.unit!])
+          ? system.ranges[updates.unit!]
           : [0, 1000];
 
         if (updatedParam.value < range[0]) {
@@ -452,10 +570,10 @@ const useRCCircuit = (initialParams = {}) => {
 
       return { ...prev, [paramName]: updatedParam };
     });
-  };
+  }, []);
 
   // Handle text input change
-  const handleTextChange = (paramName, text) => {
+  const handleTextChange = useCallback((paramName: string, text: string): void => {
     setTextValues(prev => ({ ...prev, [paramName]: text }));
 
     // Handle scientific notation (e.g., "1e3")
@@ -475,7 +593,7 @@ const useRCCircuit = (initialParams = {}) => {
     if (!isNaN(value) && isFinite(value) && value >= 0) {
       updateParameter(paramName, { value });
     }
-  };
+  }, [updateParameter]);
 
   return {
     params,
@@ -496,7 +614,12 @@ const useRCCircuit = (initialParams = {}) => {
 // ===========================
 
 // Validation error display component
-const ValidationErrors = ({ errors, onReset }) => {
+interface ValidationErrorsProps {
+  errors: string[];
+  onReset: () => void;
+}
+
+const ValidationErrors: React.FC<ValidationErrorsProps> = ({ errors, onReset }) => {
   if (!errors || errors.length === 0) return null;
 
   return (
@@ -518,7 +641,12 @@ const ValidationErrors = ({ errors, onReset }) => {
 };
 
 // Calculation error display component
-const CalculationError = ({ hasError, onReset }) => {
+interface CalculationErrorProps {
+  hasError: boolean;
+  onReset: () => void;
+}
+
+const CalculationError: React.FC<CalculationErrorProps> = ({ hasError, onReset }) => {
   if (!hasError) return null;
 
   return (
@@ -538,8 +666,18 @@ const CalculationError = ({ hasError, onReset }) => {
   );
 };
 
+// Props interface for ParameterControl
+interface ParameterControlProps {
+  paramName: string;
+  params: ParameterState;
+  textValues: TextValues;
+  onParamChange: (paramName: string, updates: Partial<ParameterWithUnit>) => void;
+  onTextChange: (paramName: string, text: string) => void;
+  hasValidationErrors: boolean;
+}
+
 // Optimized parameter control component
-const ParameterControl = ({
+const ParameterControl: React.FC<ParameterControlProps> = ({
   paramName,
   params,
   textValues,
@@ -614,25 +752,34 @@ const ParameterControl = ({
   );
 };
 
+// Props for FrequencyResponseChart
+interface FrequencyResponseChartProps {
+  frequencyResponseData: FrequencyResponseData;
+  results: CircuitResults;
+}
+
 // Optimized frequency response chart component
-const FrequencyResponseChart = ({ frequencyResponseData, results }) => {
-  const canvasRef = useRef(null);
+const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequencyResponseData, results }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { data, transitionFrequency, currentFrequency, error } = frequencyResponseData;
   const { wRC } = results;
 
   // Track rendering to avoid unnecessary redraws
   const renderCountRef = useRef(0);
 
+  // Define drawing functions inside useEffect to avoid dependency issues
   useEffect(() => {
     try {
       const canvas = canvasRef.current;
       if (!canvas || !data || data.length === 0) return;
 
+
       // Skip rendering if data hasn't changed meaningfully
-      const renderCount = renderCountRef.current;
       renderCountRef.current++;
 
       const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
       const width = canvas.width;
       const height = canvas.height;
       const margin = { top: 30, right: 70, bottom: 50, left: 70 };
@@ -708,6 +855,429 @@ const FrequencyResponseChart = ({ frequencyResponseData, results }) => {
           Math.abs(closest.frequency - currentFrequency) ? point : closest;
       }, data[0]);
 
+      // Define helper functions inside the useEffect
+      const drawChartFrame = (
+        ctx: CanvasRenderingContext2D, 
+        width: number, 
+        height: number, 
+        margin: { top: number, right: number, bottom: number, left: number }, 
+        logMin: number, 
+        logMax: number, 
+        minFreq: number, 
+        maxFreq: number, 
+        plotWidth: number
+      ): void => {
+        // Title
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
+
+        // X-axis
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margin.left, height - margin.bottom);
+        ctx.lineTo(width - margin.right, height - margin.bottom);
+        ctx.stroke();
+
+        // X-axis label
+        ctx.fillStyle = 'black';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Frequency (Hz)', width / 2, height - 10);
+
+        // X-axis ticks with safety checks
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        // Determine reasonable tick spacing
+        const logSpan = logMax - logMin;
+        const maxTicks = 10; // Prevent too many ticks
+        let tickStep = 1; // Default to every power of 10
+
+        if (logSpan > maxTicks) {
+          tickStep = Math.ceil(logSpan / maxTicks);
+        }
+
+        // Generate ticks safely
+        for (let i = Math.ceil(logMin); i <= Math.floor(logMax); i += tickStep) {
+          try {
+            const tickFreq = Math.pow(10, i);
+            if (!isFinite(tickFreq)) continue;
+
+            const x = margin.left + (Math.log10(tickFreq) - logMin) / (logMax - logMin) * plotWidth;
+
+            // Skip out-of-bounds ticks
+            if (x < margin.left || x > width - margin.right) continue;
+
+            ctx.beginPath();
+            ctx.moveTo(x, height - margin.bottom);
+            ctx.lineTo(x, height - margin.bottom + 5);
+            ctx.stroke();
+
+            // Format tick labels using scientific notation for extreme values
+            let tickLabel = tickFreq.toString();
+            if (tickFreq >= 1e6 || tickFreq <= 1e-3) {
+              tickLabel = tickFreq.toExponential(0);
+            } else if (tickFreq >= 1e3) {
+              tickLabel = (tickFreq / 1e3).toFixed(0) + 'k';
+            }
+
+            ctx.fillText(tickLabel, x, height - margin.bottom + 8);
+          } catch (error) {
+            console.error("Error drawing tick:", error);
+            // Continue with next tick
+          }
+        }
+
+        // Left y-axis (Current/Phase)
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, height - margin.bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = '#0066cc';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('Current / Phase', margin.left - 10, margin.top - 15);
+
+        // Right y-axis (Impedance)
+        ctx.beginPath();
+        ctx.moveTo(width - margin.right, margin.top);
+        ctx.lineTo(width - margin.right, height - margin.bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = '#cc6600';
+        ctx.textAlign = 'left';
+        ctx.fillText('Impedance', width - margin.right + 10, margin.top - 15);
+      };
+
+      const drawImpedanceCurve = (
+        ctx: CanvasRenderingContext2D, 
+        data: FrequencyDataPoint[], 
+        margin: { top: number, right: number, bottom: number, left: number }, 
+        height: number, 
+        logMin: number, 
+        logMax: number, 
+        plotWidth: number, 
+        plotHeight: number, 
+        maxImpedance: number
+      ): void => {
+        if (!maxImpedance || maxImpedance <= 0) return;
+
+        ctx.strokeStyle = '#cc6600';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        let isFirstPoint = true;
+
+        for (let i = 0; i < data.length; i++) {
+          try {
+            const d = data[i];
+
+            // Skip invalid data points
+            if (!isFinite(d.frequency) || !isFinite(d.impedance) || d.frequency <= 0) {
+              continue;
+            }
+
+            const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
+            // Limit the y value to prevent drawing outside the chart area
+            const rawY = height - margin.bottom - (d.impedance / maxImpedance * plotHeight);
+            const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
+
+            if (isFirstPoint) {
+              ctx.moveTo(x, y);
+              isFirstPoint = false;
+            } else {
+              ctx.lineTo(x, y);
+            }
+          } catch (error) {
+            console.error("Error drawing impedance point:", error);
+            // Continue with next point
+          }
+        }
+
+        if (!isFirstPoint) { // Only stroke if we've added points
+          ctx.stroke();
+        }
+
+        // Label
+        ctx.fillStyle = '#cc6600';
+        ctx.textAlign = 'left';
+        ctx.fillText('Impedance (Ω)', margin.left + plotWidth + 10, margin.top);
+      };
+
+      const drawCurrentCurve = (
+        ctx: CanvasRenderingContext2D, 
+        data: FrequencyDataPoint[], 
+        margin: { top: number, right: number, bottom: number, left: number }, 
+        height: number, 
+        logMin: number, 
+        logMax: number, 
+        plotWidth: number, 
+        plotHeight: number, 
+        maxCurrent: number
+      ): void => {
+        if (!maxCurrent || maxCurrent <= 0) return;
+
+        ctx.strokeStyle = '#0066cc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        let isFirstPoint = true;
+
+        for (let i = 0; i < data.length; i++) {
+          try {
+            const d = data[i];
+
+            // Skip invalid data points
+            if (!isFinite(d.frequency) || !isFinite(d.current) || d.frequency <= 0) {
+              continue;
+            }
+
+            const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
+            // Limit the y value to prevent drawing outside the chart area
+            const rawY = height - margin.bottom - (d.current / maxCurrent * plotHeight);
+            const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
+
+            if (isFirstPoint) {
+              ctx.moveTo(x, y);
+              isFirstPoint = false;
+            } else {
+              ctx.lineTo(x, y);
+            }
+          } catch (error) {
+            console.error("Error drawing current point:", error);
+            // Continue with next point
+          }
+        }
+
+        if (!isFirstPoint) { // Only stroke if we've added points
+          ctx.stroke();
+        }
+
+        // Label
+        ctx.fillStyle = '#0066cc';
+        ctx.textAlign = 'right';
+        ctx.fillText('Current (normalized)', margin.left - 10, margin.top);
+      };
+
+      const drawPhaseCurve = (
+        ctx: CanvasRenderingContext2D, 
+        data: FrequencyDataPoint[], 
+        margin: { top: number, right: number, bottom: number, left: number }, 
+        height: number, 
+        logMin: number, 
+        logMax: number, 
+        plotWidth: number, 
+        plotHeight: number
+      ): void => {
+        ctx.strokeStyle = '#9933cc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        let isFirstPoint = true;
+
+        for (let i = 0; i < data.length; i++) {
+          try {
+            const d = data[i];
+
+            // Skip invalid data points
+            if (!isFinite(d.frequency) || !isFinite(d.phaseAngle) || d.frequency <= 0) {
+              continue;
+            }
+
+            const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
+            // Limit the y value to prevent drawing outside the chart area
+            const rawY = height - margin.bottom - (d.phaseAngle / 90 * plotHeight);
+            const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
+
+            if (isFirstPoint) {
+              ctx.moveTo(x, y);
+              isFirstPoint = false;
+            } else {
+              ctx.lineTo(x, y);
+            }
+          } catch (error) {
+            console.error("Error drawing phase point:", error);
+            // Continue with next point
+          }
+        }
+
+        if (!isFirstPoint) { // Only stroke if we've added points
+          ctx.stroke();
+        }
+
+        // Label
+        ctx.fillStyle = '#9933cc';
+        ctx.textAlign = 'right';
+        ctx.fillText('Phase Angle (°)', margin.left - 10, margin.top + 20);
+      };
+
+      const drawOperatingPoint = (
+        ctx: CanvasRenderingContext2D, 
+        currentDataPoint: FrequencyDataPoint, 
+        opX: number, 
+        margin: { top: number, right: number, bottom: number, left: number }, 
+        height: number, 
+        plotWidth: number, 
+        plotHeight: number, 
+        maxCurrent: number, 
+        maxImpedance: number
+      ): void => {
+        try {
+          // Check for valid data
+          if (!isFinite(currentDataPoint.impedance) || !isFinite(currentDataPoint.current) ||
+            !isFinite(currentDataPoint.phaseAngle) || !maxCurrent || !maxImpedance) {
+            return;
+          }
+
+          // Impedance point
+          const rawImpedanceY = height - margin.bottom - (currentDataPoint.impedance / maxImpedance * plotHeight);
+          const opImpedanceY = Math.max(margin.top, Math.min(height - margin.bottom, rawImpedanceY));
+
+          ctx.fillStyle = '#cc6600';
+          ctx.beginPath();
+          ctx.arc(opX, opImpedanceY, 5, 0, 2 * Math.PI);
+          ctx.fill();
+
+          // Current point
+          const rawCurrentY = height - margin.bottom - (currentDataPoint.current / maxCurrent * plotHeight);
+          const opCurrentY = Math.max(margin.top, Math.min(height - margin.bottom, rawCurrentY));
+
+          ctx.fillStyle = '#0066cc';
+          ctx.beginPath();
+          ctx.arc(opX, opCurrentY, 5, 0, 2 * Math.PI);
+          ctx.fill();
+
+          // Phase angle point
+          const rawPhaseY = height - margin.bottom - (currentDataPoint.phaseAngle / 90 * plotHeight);
+          const opPhaseY = Math.max(margin.top, Math.min(height - margin.bottom, rawPhaseY));
+
+          ctx.fillStyle = '#9933cc';
+          ctx.beginPath();
+          ctx.arc(opX, opPhaseY, 5, 0, 2 * Math.PI);
+          ctx.fill();
+
+          // Operating frequency line
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(opX, margin.top);
+          ctx.lineTo(opX, height - margin.bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Labels
+          ctx.fillStyle = 'black';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+
+          // Format labels for extreme values
+          let freqLabel = currentDataPoint.frequency.toFixed(2) + " Hz";
+          if (currentDataPoint.frequency >= 1e6 || currentDataPoint.frequency <= 1e-3) {
+            freqLabel = currentDataPoint.frequency.toExponential(2) + " Hz";
+          } else if (currentDataPoint.frequency >= 1e3) {
+            freqLabel = (currentDataPoint.frequency / 1e3).toFixed(2) + " kHz";
+          }
+
+          ctx.fillText(`f = ${freqLabel}`, opX, height - margin.bottom + 15);
+          ctx.fillText(`ωRC = ${currentDataPoint.wRC.toFixed(2)}`, opX, height - margin.bottom + 30);
+        } catch (error) {
+          console.error("Error drawing operating point:", error);
+        }
+      };
+
+      const drawTransitionPoint = (
+        ctx: CanvasRenderingContext2D, 
+        transitionFreq: number, 
+        minFreq: number, 
+        maxFreq: number, 
+        logMin: number, 
+        logMax: number, 
+        margin: { top: number, right: number, bottom: number, left: number }, 
+        height: number, 
+        plotWidth: number
+      ): void => {
+        try {
+          // Check for valid transition frequency
+          if (!isFinite(transitionFreq) || transitionFreq <= 0) return;
+
+          // Check if transition point is within range
+          if (transitionFreq >= minFreq && transitionFreq <= maxFreq) {
+            const transitionX = margin.left + (Math.log10(transitionFreq) - logMin) / (logMax - logMin) * plotWidth;
+
+            // Ensure x is within chart bounds
+            if (transitionX >= margin.left && transitionX <= (margin.left + plotWidth)) {
+              ctx.strokeStyle = 'red';
+              ctx.lineWidth = 1;
+              ctx.setLineDash([5, 3]);
+              ctx.beginPath();
+              ctx.moveTo(transitionX, margin.top);
+              ctx.lineTo(transitionX, height - margin.bottom);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              ctx.fillStyle = 'red';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText('ωRC = 1', transitionX, margin.top - 5);
+            }
+          }
+        } catch (error) {
+          console.error("Error drawing transition point:", error);
+        }
+      };
+
+      const drawLegend = (
+        ctx: CanvasRenderingContext2D, 
+        width: number, 
+        margin: { top: number, right: number, bottom: number, left: number }
+      ): void => {
+        try {
+          const legendX = width - margin.right - 120;
+          const legendY = margin.top + 20;
+
+          // Impedance
+          ctx.strokeStyle = '#cc6600';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(legendX, legendY);
+          ctx.lineTo(legendX + 20, legendY);
+          ctx.stroke();
+
+          ctx.fillStyle = '#cc6600';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Impedance', legendX + 25, legendY);
+
+          // Current
+          ctx.strokeStyle = '#0066cc';
+          ctx.beginPath();
+          ctx.moveTo(legendX, legendY + 20);
+          ctx.lineTo(legendX + 20, legendY + 20);
+          ctx.stroke();
+
+          ctx.fillStyle = '#0066cc';
+          ctx.fillText('Current', legendX + 25, legendY + 20);
+
+          // Phase
+          ctx.strokeStyle = '#9933cc';
+          ctx.beginPath();
+          ctx.moveTo(legendX, legendY + 40);
+          ctx.lineTo(legendX + 20, legendY + 40);
+          ctx.stroke();
+
+          ctx.fillStyle = '#9933cc';
+          ctx.fillText('Phase Angle', legendX + 25, legendY + 40);
+        } catch (error) {
+          console.error("Error drawing legend:", error);
+        }
+      };
+
       // Draw chart with comprehensive error handling
       try {
         drawChartFrame(ctx, width, height, margin, logMin, logMax, minFreq, maxFreq, plotWidth);
@@ -754,373 +1324,16 @@ const FrequencyResponseChart = ({ frequencyResponseData, results }) => {
 
     // Clean up function
     return () => {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Access canvasRef.current directly in cleanup
+      const canvasElement = canvasRef.current;
+      if (canvasElement) {
+        const ctx = canvasElement.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        }
       }
     };
   }, [data, transitionFrequency, currentFrequency, wRC, error]);
-
-  // Helper functions for chart drawing
-  const drawChartFrame = (ctx, width, height, margin, logMin, logMax, minFreq, maxFreq, plotWidth) => {
-    // Title
-    ctx.fillStyle = 'black';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
-
-    // X-axis
-    ctx.strokeStyle = '#999';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(margin.left, height - margin.bottom);
-    ctx.lineTo(width - margin.right, height - margin.bottom);
-    ctx.stroke();
-
-    // X-axis label
-    ctx.fillStyle = 'black';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Frequency (Hz)', width / 2, height - 10);
-
-    // X-axis ticks with safety checks
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    // Determine reasonable tick spacing
-    const logSpan = logMax - logMin;
-    const maxTicks = 10; // Prevent too many ticks
-    let tickStep = 1; // Default to every power of 10
-
-    if (logSpan > maxTicks) {
-      tickStep = Math.ceil(logSpan / maxTicks);
-    }
-
-    // Generate ticks safely
-    for (let i = Math.ceil(logMin); i <= Math.floor(logMax); i += tickStep) {
-      try {
-        const tickFreq = Math.pow(10, i);
-        if (!isFinite(tickFreq)) continue;
-
-        const x = margin.left + (Math.log10(tickFreq) - logMin) / (logMax - logMin) * plotWidth;
-
-        // Skip out-of-bounds ticks
-        if (x < margin.left || x > width - margin.right) continue;
-
-        ctx.beginPath();
-        ctx.moveTo(x, height - margin.bottom);
-        ctx.lineTo(x, height - margin.bottom + 5);
-        ctx.stroke();
-
-        // Format tick labels using scientific notation for extreme values
-        let tickLabel = tickFreq.toString();
-        if (tickFreq >= 1e6 || tickFreq <= 1e-3) {
-          tickLabel = tickFreq.toExponential(0);
-        } else if (tickFreq >= 1e3) {
-          tickLabel = (tickFreq / 1e3).toFixed(0) + 'k';
-        }
-
-        ctx.fillText(tickLabel, x, height - margin.bottom + 8);
-      } catch (error) {
-        console.error("Error drawing tick:", error);
-        // Continue with next tick
-      }
-    }
-
-    // Left y-axis (Current/Phase)
-    ctx.beginPath();
-    ctx.moveTo(margin.left, margin.top);
-    ctx.lineTo(margin.left, height - margin.bottom);
-    ctx.stroke();
-
-    ctx.fillStyle = '#0066cc';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.font = 'bold 12px Arial';
-    ctx.fillText('Current / Phase', margin.left - 10, margin.top - 15);
-
-    // Right y-axis (Impedance)
-    ctx.beginPath();
-    ctx.moveTo(width - margin.right, margin.top);
-    ctx.lineTo(width - margin.right, height - margin.bottom);
-    ctx.stroke();
-
-    ctx.fillStyle = '#cc6600';
-    ctx.textAlign = 'left';
-    ctx.fillText('Impedance', width - margin.right + 10, margin.top - 15);
-  };
-
-  const drawImpedanceCurve = (ctx, data, margin, height, logMin, logMax, plotWidth, plotHeight, maxImpedance) => {
-    if (!maxImpedance || maxImpedance <= 0) return;
-
-    ctx.strokeStyle = '#cc6600';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-
-    let isFirstPoint = true;
-
-    for (let i = 0; i < data.length; i++) {
-      try {
-        const d = data[i];
-
-        // Skip invalid data points
-        if (!isFinite(d.frequency) || !isFinite(d.impedance) || d.frequency <= 0) {
-          continue;
-        }
-
-        const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
-        // Limit the y value to prevent drawing outside the chart area
-        const rawY = height - margin.bottom - (d.impedance / maxImpedance * plotHeight);
-        const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
-
-        if (isFirstPoint) {
-          ctx.moveTo(x, y);
-          isFirstPoint = false;
-        } else {
-          ctx.lineTo(x, y);
-        }
-      } catch (error) {
-        console.error("Error drawing impedance point:", error);
-        // Continue with next point
-      }
-    }
-
-    if (!isFirstPoint) { // Only stroke if we've added points
-      ctx.stroke();
-    }
-
-    // Label
-    ctx.fillStyle = '#cc6600';
-    ctx.textAlign = 'left';
-    ctx.fillText('Impedance (Ω)', margin.left + plotWidth + 10, margin.top);
-  };
-
-  const drawCurrentCurve = (ctx, data, margin, height, logMin, logMax, plotWidth, plotHeight, maxCurrent) => {
-    if (!maxCurrent || maxCurrent <= 0) return;
-
-    ctx.strokeStyle = '#0066cc';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-
-    let isFirstPoint = true;
-
-    for (let i = 0; i < data.length; i++) {
-      try {
-        const d = data[i];
-
-        // Skip invalid data points
-        if (!isFinite(d.frequency) || !isFinite(d.current) || d.frequency <= 0) {
-          continue;
-        }
-
-        const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
-        // Limit the y value to prevent drawing outside the chart area
-        const rawY = height - margin.bottom - (d.current / maxCurrent * plotHeight);
-        const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
-
-        if (isFirstPoint) {
-          ctx.moveTo(x, y);
-          isFirstPoint = false;
-        } else {
-          ctx.lineTo(x, y);
-        }
-      } catch (error) {
-        console.error("Error drawing current point:", error);
-        // Continue with next point
-      }
-    }
-
-    if (!isFirstPoint) { // Only stroke if we've added points
-      ctx.stroke();
-    }
-
-    // Label
-    ctx.fillStyle = '#0066cc';
-    ctx.textAlign = 'right';
-    ctx.fillText('Current (normalized)', margin.left - 10, margin.top);
-  };
-
-  const drawPhaseCurve = (ctx, data, margin, height, logMin, logMax, plotWidth, plotHeight) => {
-    ctx.strokeStyle = '#9933cc';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-
-    let isFirstPoint = true;
-
-    for (let i = 0; i < data.length; i++) {
-      try {
-        const d = data[i];
-
-        // Skip invalid data points
-        if (!isFinite(d.frequency) || !isFinite(d.phaseAngle) || d.frequency <= 0) {
-          continue;
-        }
-
-        const x = margin.left + (Math.log10(d.frequency) - logMin) / (logMax - logMin) * plotWidth;
-        // Limit the y value to prevent drawing outside the chart area
-        const rawY = height - margin.bottom - (d.phaseAngle / 90 * plotHeight);
-        const y = Math.max(margin.top, Math.min(height - margin.bottom, rawY));
-
-        if (isFirstPoint) {
-          ctx.moveTo(x, y);
-          isFirstPoint = false;
-        } else {
-          ctx.lineTo(x, y);
-        }
-      } catch (error) {
-        console.error("Error drawing phase point:", error);
-        // Continue with next point
-      }
-    }
-
-    if (!isFirstPoint) { // Only stroke if we've added points
-      ctx.stroke();
-    }
-
-    // Label
-    ctx.fillStyle = '#9933cc';
-    ctx.textAlign = 'right';
-    ctx.fillText('Phase Angle (°)', margin.left - 10, margin.top + 20);
-  };
-
-  const drawOperatingPoint = (ctx, currentDataPoint, opX, margin, height, plotWidth, plotHeight, maxCurrent, maxImpedance) => {
-    try {
-      // Check for valid data
-      if (!isFinite(currentDataPoint.impedance) || !isFinite(currentDataPoint.current) ||
-        !isFinite(currentDataPoint.phaseAngle) || !maxCurrent || !maxImpedance) {
-        return;
-      }
-
-      // Impedance point
-      const rawImpedanceY = height - margin.bottom - (currentDataPoint.impedance / maxImpedance * plotHeight);
-      const opImpedanceY = Math.max(margin.top, Math.min(height - margin.bottom, rawImpedanceY));
-
-      ctx.fillStyle = '#cc6600';
-      ctx.beginPath();
-      ctx.arc(opX, opImpedanceY, 5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Current point
-      const rawCurrentY = height - margin.bottom - (currentDataPoint.current / maxCurrent * plotHeight);
-      const opCurrentY = Math.max(margin.top, Math.min(height - margin.bottom, rawCurrentY));
-
-      ctx.fillStyle = '#0066cc';
-      ctx.beginPath();
-      ctx.arc(opX, opCurrentY, 5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Phase angle point
-      const rawPhaseY = height - margin.bottom - (currentDataPoint.phaseAngle / 90 * plotHeight);
-      const opPhaseY = Math.max(margin.top, Math.min(height - margin.bottom, rawPhaseY));
-
-      ctx.fillStyle = '#9933cc';
-      ctx.beginPath();
-      ctx.arc(opX, opPhaseY, 5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Operating frequency line
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 2]);
-      ctx.beginPath();
-      ctx.moveTo(opX, margin.top);
-      ctx.lineTo(opX, height - margin.bottom);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Labels
-      ctx.fillStyle = 'black';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-
-      // Format labels for extreme values
-      let freqLabel = currentFrequency.toFixed(2) + " Hz";
-      if (currentFrequency >= 1e6 || currentFrequency <= 1e-3) {
-        freqLabel = currentFrequency.toExponential(2) + " Hz";
-      } else if (currentFrequency >= 1e3) {
-        freqLabel = (currentFrequency / 1e3).toFixed(2) + " kHz";
-      }
-
-      ctx.fillText(`f = ${freqLabel}`, opX, height - margin.bottom + 15);
-      ctx.fillText(`ωRC = ${currentDataPoint.wRC.toFixed(2)}`, opX, height - margin.bottom + 30);
-    } catch (error) {
-      console.error("Error drawing operating point:", error);
-    }
-  };
-
-  const drawTransitionPoint = (ctx, transitionFreq, minFreq, maxFreq, logMin, logMax, margin, height, plotWidth) => {
-    try {
-      // Check for valid transition frequency
-      if (!isFinite(transitionFreq) || transitionFreq <= 0) return;
-
-      // Check if transition point is within range
-      if (transitionFreq >= minFreq && transitionFreq <= maxFreq) {
-        const transitionX = margin.left + (Math.log10(transitionFreq) - logMin) / (logMax - logMin) * plotWidth;
-
-        // Ensure x is within chart bounds
-        if (transitionX >= margin.left && transitionX <= (margin.left + plotWidth)) {
-          ctx.strokeStyle = 'red';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([5, 3]);
-          ctx.beginPath();
-          ctx.moveTo(transitionX, margin.top);
-          ctx.lineTo(transitionX, height - margin.bottom);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          ctx.fillStyle = 'red';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText('ωRC = 1', transitionX, margin.top - 5);
-        }
-      }
-    } catch (error) {
-      console.error("Error drawing transition point:", error);
-    }
-  };
-
-  const drawLegend = (ctx, width, margin) => {
-    try {
-      const legendX = width - margin.right - 120;
-      const legendY = margin.top + 20;
-
-      // Impedance
-      ctx.strokeStyle = '#cc6600';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(legendX, legendY);
-      ctx.lineTo(legendX + 20, legendY);
-      ctx.stroke();
-
-      ctx.fillStyle = '#cc6600';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Impedance', legendX + 25, legendY);
-
-      // Current
-      ctx.strokeStyle = '#0066cc';
-      ctx.beginPath();
-      ctx.moveTo(legendX, legendY + 20);
-      ctx.lineTo(legendX + 20, legendY + 20);
-      ctx.stroke();
-
-      ctx.fillStyle = '#0066cc';
-      ctx.fillText('Current', legendX + 25, legendY + 20);
-
-      // Phase
-      ctx.strokeStyle = '#9933cc';
-      ctx.beginPath();
-      ctx.moveTo(legendX, legendY + 40);
-      ctx.lineTo(legendX + 20, legendY + 40);
-      ctx.stroke();
-
-      ctx.fillStyle = '#9933cc';
-      ctx.fillText('Phase Angle', legendX + 25, legendY + 40);
-    } catch (error) {
-      console.error("Error drawing legend:", error);
-    }
-  };
 
   // Show error state if calculations failed
   if (error) {
@@ -1169,11 +1382,16 @@ const FrequencyResponseChart = ({ frequencyResponseData, results }) => {
 };
 
 // Combined current distribution and phase visualization component
-const CircuitVisualizations = ({ results, determineRegime }) => {
+interface CircuitVisualizationsProps {
+  results: CircuitResults;
+  determineRegime: () => string;
+}
+
+const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({ results, determineRegime }) => {
   const { wRC, phaseAngle, powerFactor, resistivePercent, capacitivePercent } = results;
 
   // Create a simple visualization of where we are on the ωRC scale with safety checks
-  const getRCPositionStyle = () => {
+  const getRCPositionStyle = (): React.CSSProperties => {
     // Handle invalid wRC
     if (!isFinite(wRC) || isNaN(wRC)) {
       return { left: '0%' };
@@ -1291,12 +1509,16 @@ const CircuitVisualizations = ({ results, determineRegime }) => {
 };
 
 // Safety meter component
-const SafetyMeter = ({ results }) => {
+interface SafetyMeterProps {
+  results: CircuitResults;
+}
+
+const SafetyMeter: React.FC<SafetyMeterProps> = ({ results }) => {
   const { currentTotal, isSafe, values } = results;
   const safeThreshold = values ? values.safeCurrentThreshold : 500e-6; // Default to 500μA if missing
 
   // Utility function for formatted current
-  const formatCurrent = (amps) => {
+  const formatCurrent = (amps: number): string => {
     if (!isFinite(amps) || isNaN(amps)) return "-- A";
     if (amps >= 1) return `${amps.toFixed(2)} A`;
     if (amps >= 1e-3) return `${(amps * 1e3).toFixed(2)} mA`;
@@ -1358,7 +1580,12 @@ const SafetyMeter = ({ results }) => {
 };
 
 // Combined results and interpretation component
-const ResultsAndInterpretation = ({ results, determineRegime }) => {
+interface ResultsAndInterpretationProps {
+  results: CircuitResults;
+  determineRegime: () => string;
+}
+
+const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ results, determineRegime }) => {
   const {
     wRC,
     currentR,
@@ -1519,11 +1746,29 @@ const ResultsAndInterpretation = ({ results, determineRegime }) => {
   );
 };
 
+// Helper function to check parameter validation state
+const getParamValidationState = (validationErrors: string[], paramName: string): boolean => {
+  if (!validationErrors || validationErrors.length === 0) return false;
+
+  // Simple string matching to detect which parameters are mentioned in errors
+  return validationErrors.some(error => {
+    // Ensure error is a string before calling toLowerCase
+    if (typeof error === 'string') {
+      return error.toLowerCase().includes(paramName.toLowerCase());
+    }
+    return false;
+  });
+};
+
 // ===========================
 // MAIN COMPONENT
 // ===========================
 
-const RCCircuitAnalysis = ({ initialParams = {} }) => {
+interface RCCircuitAnalysisProps {
+  initialParams?: Partial<ParameterState>;
+}
+
+const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {} }) => {
   const {
     params,
     textValues,
@@ -1538,13 +1783,8 @@ const RCCircuitAnalysis = ({ initialParams = {} }) => {
   } = useRCCircuit(initialParams);
 
   // Check which parameters have validation errors
-  const getParamValidationState = (paramName) => {
-    if (!validationErrors || validationErrors.length === 0) return false;
-
-    // Simple string matching to detect which parameters are mentioned in errors
-    return validationErrors.some(error =>
-      error.toLowerCase().includes(paramName.toLowerCase())
-    );
+  const checkParamValidationState = (paramName: string): boolean => {
+    return getParamValidationState(validationErrors, paramName);
   };
 
   return (
@@ -1564,40 +1804,37 @@ const RCCircuitAnalysis = ({ initialParams = {} }) => {
         />
 
         
-<div className="bg-gray-100 p-4 rounded-lg mb-6">
-  <div className="flex justify-between items-center mb-2">
-    <h2 className="text-lg font-semibold">Circuit Parameters</h2>
-    <button
-      onClick={resetCircuit}
-      className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
-    >
-      Reset Parameters
-    </button>
-  </div>
-  
-  <div className="flex flex-col md:flex-row">
-    <div className="flex-grow">
-      {['voltage', 'resistance', 'capacitance', 'frequency'].map(paramName => (
-        <ParameterControl
-          key={paramName}
-          paramName={paramName}
-          params={params}
-          textValues={textValues}
-          onParamChange={updateParameter}
-          onTextChange={handleTextChange}
-          hasValidationErrors={getParamValidationState(paramName)}
-        />
-      ))}
-    </div>
-    
-    {/* Add Circuit Animation here */}
-    <CircuitAnimation />
-  </div>
+        <div className="bg-gray-100 p-4 rounded-lg mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-lg font-semibold">Circuit Parameters</h2>
+            <button
+              onClick={resetCircuit}
+              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
+            >
+              Reset Parameters
+            </button>
+          </div>
+          
+          <div className="flex flex-col md:flex-row">
+            <div className="flex-grow">
+              {['voltage', 'resistance', 'capacitance', 'frequency'].map(paramName => (
+                <ParameterControl
+                  key={paramName}
+                  paramName={paramName}
+                  params={params}
+                  textValues={textValues}
+                  onParamChange={updateParameter}
+                  onTextChange={handleTextChange}
+                  hasValidationErrors={checkParamValidationState(paramName)}
+                />
+              ))}
+            </div>
+          </div>
 
-  <div className="mt-2 text-xs text-gray-500 italic">
-    Note: All calculations assume pure sine waves in AC steady state.
-  </div>
-</div>
+          <div className="mt-2 text-xs text-gray-500 italic">
+            Note: All calculations assume pure sine waves in AC steady state.
+          </div>
+        </div>
 
         {/* Frequency Response Analysis */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
@@ -1626,7 +1863,7 @@ const RCCircuitAnalysis = ({ initialParams = {} }) => {
             textValues={textValues}
             onParamChange={updateParameter}
             onTextChange={handleTextChange}
-            hasValidationErrors={getParamValidationState('safeCurrentThreshold')}
+            hasValidationErrors={checkParamValidationState('safeCurrentThreshold')}
           />
 
           <div className="text-sm mt-2 mb-4">
