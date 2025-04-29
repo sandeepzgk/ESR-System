@@ -7,7 +7,7 @@ interface MathematicalModelModalProps {
 }
 
 const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'equations' | 'safety'>('equations');
+  const [activeTab, setActiveTab] = useState<'theory' | 'noise' | 'safety'>('theory');
 
   if (!isOpen) return null;
 
@@ -16,7 +16,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-xl font-semibold">Circuit Theory & Safety Reference</h2>
+          <h2 className="text-xl font-semibold">Circuit Theory &amp; Safety Reference</h2>
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
@@ -29,13 +29,23 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
         <div className="flex border-b">
           <button
             className={`py-3 px-6 font-medium ${
-              activeTab === 'equations' 
+              activeTab === 'theory' 
                 ? 'text-blue-600 border-b-2 border-blue-600' 
                 : 'text-gray-600 hover:text-blue-500'
             }`}
-            onClick={() => setActiveTab('equations')}
+            onClick={() => setActiveTab('theory')}
           >
-            Mathematical Models
+            Sine Wave Theory
+          </button>
+          <button
+            className={`py-3 px-6 font-medium ${
+              activeTab === 'noise' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-600 hover:text-blue-500'
+            }`}
+            onClick={() => setActiveTab('noise')}
+          >
+            Noise Analysis
           </button>
           <button
             className={`py-3 px-6 font-medium ${
@@ -45,13 +55,13 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
             }`}
             onClick={() => setActiveTab('safety')}
           >
-            Human Body Application
+            Human Body Safety
           </button>
         </div>
         
         {/* Content */}
         <div className="p-6 overflow-y-auto">
-          {activeTab === 'equations' ? (
+          {activeTab === 'theory' && (
             <div className="space-y-8">
               <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-blue-300">
                 <h3 className="font-medium mb-3 text-lg">Sine Wave Model</h3>
@@ -71,28 +81,68 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                   <p>Impedance: Z = R/√(1 + (ωRC)<sup>2</sup>)</p>
                 </div>
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-green-300">
-                <h3 className="font-medium mb-3 text-lg">White Noise Model</h3>
-                <div className="space-y-2">
-                  <p>I<sub>total,RMS</sub> = √(I<sub>R,RMS</sub><sup>2</sup> + I<sub>C,RMS</sub><sup>2</sup>)</p>
-                  <p>I<sub>R,RMS</sub> = V<sub>RMS</sub>/R</p>
-                  <p>I<sub>C,RMS</sub> = V<sub>RMS</sub>·2πC·√[(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>)/(3·(f<sub>max</sub> - f<sub>min</sub>))]</p>
-                  <p className="mt-2 font-semibold">White noise has equal power across all frequencies</p>
-                  <p>For a band-limited white noise from f<sub>min</sub> to f<sub>max</sub>:</p>
-                  <ul className="list-disc ml-5 mt-2">
-                    <li>Higher frequencies contribute more to capacitive current</li>
-                    <li>Capacitive reactance decreases with frequency: X<sub>C</sub> = 1/(2πfC)</li>
-                    <li>The RMS capacitive current requires integrating over the frequency range</li>
+
+              {/* New Section: Transition Frequency Formula */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-indigo-300">
+                <h3 className="font-medium mb-3 text-lg">Transition Frequency</h3>
+                <div className="space-y-3">
+                  <p className="font-semibold">The transition frequency occurs when ωRC = 1, where the circuit shifts from resistive to capacitive behavior</p>
+                  
+                  <div className="bg-white p-3 rounded border border-gray-200">
+                    <p className="text-center font-medium">f<sub>transition</sub> = 1/(2πRC)</p>
+                  </div>
+                  
+                  <p>At this frequency:</p>
+                  <ul className="list-disc ml-5">
+                    <li>Resistive and capacitive currents are equal: I<sub>R</sub> = I<sub>C</sub></li>
+                    <li>Phase angle is 45° (halfway between 0° and 90°)</li>
+                    <li>Power factor is 0.707 (1/√2)</li>
+                    <li>Impedance is 0.707×R (R/√2)</li>
                   </ul>
+                  
+                  <p>In the frequency response chart, this transition point is marked with a vertical red dashed line.</p>
+                  
+                  <div className="bg-blue-50 p-3 rounded text-sm">
+                    <p className="font-medium">Example calculation:</p>
+                    <p>For R = 10 kΩ and C = 1 μF:</p>
+                    <p>f<sub>transition</sub> = 1/(2π × 10×10<sup>3</sup> × 1×10<sup>-6</sup>) = 15.9 Hz</p>
+                  </div>
+                  
+                  <p className="text-sm italic">This critical frequency is also called the "corner frequency" or "cutoff frequency" in filter design.</p>
                 </div>
               </div>
               
-              {/* New section explaining vector currents and percentages */}
+              {/* Alternate Impedance Representation */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-300">
+                <h3 className="font-medium mb-3 text-lg">Impedance Representations</h3>
+                <div className="space-y-2">
+                  <p className="font-semibold">The impedance of a parallel RC circuit can be represented in multiple equivalent forms:</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="text-center font-medium mb-2">Application Form</p>
+                      <p className="text-center">Z = R/√(1 + (ωRC)<sup>2</sup>)</p>
+                    </div>
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="text-center font-medium mb-2">Textbook Form</p>
+                      <p className="text-center">Z = 1/√((1/R)<sup>2</sup> + (ωC)<sup>2</sup>)</p>
+                    </div>
+                  </div>
+                  
+                  <p className="mt-3">These forms are mathematically equivalent, derived from the parallel impedance formula:</p>
+                  <div className="bg-white p-3 rounded border border-gray-200 mt-2">
+                    <p>1/Z = 1/R + jωC</p>
+                    <p>Z = R/(1 + jωRC)</p>
+                    <p>|Z| = R/√(1 + (ωRC)<sup>2</sup>)</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Vector Current Relationship */}
               <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-300">
                 <h3 className="font-medium mb-3 text-lg">Vector Current Relationship</h3>
                 <div className="space-y-2">
-                  <p className="font-semibold">Why resistive and capacitive currents don't add to 100%:</p>
+                  <p className="font-semibold">Why resistive and capacitive currents don&apos;t add to 100%:</p>
                   <p>In AC circuits, currents are vectors with both magnitude and direction (phase).</p>
                   
                   <div className="bg-white p-4 rounded my-3 border border-gray-200">
@@ -144,9 +194,68 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                   </ul>
                 </div>
               </div>
+            </div>
+          )}
+          
+          {activeTab === 'noise' && (
+            <div className="space-y-8">
+              {/* White Noise Model */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-green-300">
+                <h3 className="font-medium mb-3 text-lg">White Noise Model</h3>
+                <div className="space-y-2">
+                  <p>I<sub>total,RMS</sub> = √(I<sub>R,RMS</sub><sup>2</sup> + I<sub>C,RMS</sub><sup>2</sup>)</p>
+                  <p>I<sub>R,RMS</sub> = V<sub>RMS</sub>/R</p>
+                  <p>I<sub>C,RMS</sub> = V<sub>RMS</sub>·2πC·√[(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>)/(3·(f<sub>max</sub> - f<sub>min</sub>))]</p>
+                  <p className="mt-2 font-semibold">White noise has equal power across all frequencies</p>
+                  <p>For a band-limited white noise from f<sub>min</sub> to f<sub>max</sub>:</p>
+                  <ul className="list-disc ml-5 mt-2">
+                    <li>Higher frequencies contribute more to capacitive current</li>
+                    <li>Capacitive reactance decreases with frequency: X<sub>C</sub> = 1/(2πfC)</li>
+                    <li>The RMS capacitive current requires integrating over the frequency range</li>
+                  </ul>
+                </div>
+              </div>
               
+              {/* Enhanced Noise Integration Theory Section */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-amber-300">
+                <h3 className="font-medium mb-3 text-lg">Noise Integration Theory</h3>
+                <div className="space-y-3">
+                  <p className="font-semibold">The capacitive current for white noise requires integration across the frequency band</p>
+                  
+                  <p>Unlike a sine wave where the current occurs at a single frequency, white noise contains power across a range of frequencies. Since capacitive reactance (X<sub>C</sub>) changes with frequency, we must integrate the current response across the entire band:</p>
+                  
+                  <div className="bg-white p-3 rounded border border-gray-200 my-3">
+                    <p className="text-center mb-2">Mathematical derivation:</p>
+                    <p>1. For each frequency component in the band:</p>
+                    <p className="ml-4">I<sub>C</sub>(f) = V(f) / X<sub>C</sub>(f) = V(f) × 2πfC</p>
+                    <p>2. For white noise with constant power spectral density:</p>
+                    <p className="ml-4">Power per Hz = V<sub>RMS</sub>² / (f<sub>max</sub> - f<sub>min</sub>)</p>
+                    <p>3. The total RMS current is found by integrating the power contribution across all frequencies:</p>
+                    <p className="ml-4 font-medium">I<sub>C,RMS</sub>² = ∫<sub>f<sub>min</sub></sub><sup>f<sub>max</sub></sup> [V<sub>RMS</sub>²/(f<sub>max</sub>-f<sub>min</sub>)] × (2πfC)² df</p>
+                    <p>4. Solving this integral yields our formula:</p>
+                    <p className="mt-2 text-center font-medium">I<sub>C,RMS</sub> = V<sub>RMS</sub>·2πC·√[(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>)/(3·(f<sub>max</sub> - f<sub>min</sub>))]</p>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-3 rounded text-sm">
+                    <p className="font-medium">Example calculation:</p>
+                    <p>For V<sub>RMS</sub> = 1 V, C = 100 nF, f<sub>min</sub> = 20 Hz, f<sub>max</sub> = 200 Hz:</p>
+                    <ol className="list-decimal ml-5 mt-2">
+                      <li>f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup> = 200³ - 20³ = 8,000,000 - 8,000 = 7,992,000</li>
+                      <li>3 × (f<sub>max</sub> - f<sub>min</sub>) = 3 × (200 - 20) = 3 × 180 = 540</li>
+                      <li>Ratio = 7,992,000 / 540 = 14,800</li>
+                      <li>Square root = √14,800 ≈ 121.7</li>
+                      <li>2πC = 2π × 100×10<sup>-9</sup> = 6.28×10<sup>-7</sup></li>
+                      <li>I<sub>C,RMS</sub> = 1 × 6.28×10<sup>-7</sup> × 121.7 ≈ 7.64×10<sup>-5</sup> A = 76.4 μA</li>
+                    </ol>
+                  </div>
+                  
+                  <p className="text-sm italic">Note: This integration approach gives a more accurate result than using a single "effective frequency" for noise analysis.</p>
+                </div>
+              </div>
+              
+              {/* White Noise vs Sine Wave Comparison */}
               <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-gray-300">
-                <h3 className="font-medium mb-3 text-lg">Comparison</h3>
+                <h3 className="font-medium mb-3 text-lg">Comparison: Noise vs Sine Wave</h3>
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-200">
@@ -172,15 +281,58 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                       <td className="p-2">Equal power across all frequencies</td>
                     </tr>
                     <tr className="border-t">
+                      <td className="p-2 font-medium">Capacitive current</td>
+                      <td className="p-2">I<sub>C</sub> = V<sub>RMS</sub>·2πfC</td>
+                      <td className="p-2">Requires frequency band integration</td>
+                    </tr>
+                    <tr className="border-t">
                       <td className="p-2 font-medium">Circuit response</td>
                       <td className="p-2">Determined by single ωRC value</td>
                       <td className="p-2">Integrated response across all frequencies</td>
                     </tr>
+                    <tr className="border-t">
+                      <td className="p-2 font-medium">Effective ωRC</td>
+                      <td className="p-2">Single value: 2πfRC</td>
+                      <td className="p-2">Varies across frequency band</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
+              
+              {/* Noise Bandwidth Analysis */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-blue-300">
+                <h3 className="font-medium mb-3 text-lg">Noise Bandwidth Effects</h3>
+                <div className="space-y-3">
+                  <p>Bandwidth selection significantly impacts the circuit response in noise mode:</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="font-medium mb-2">Narrow Bandwidth</p>
+                      <ul className="list-disc ml-5">
+                        <li>More predictable response</li>
+                        <li>Less frequency-dependent variation</li>
+                        <li>Closer to sine wave model if bandwidth is very narrow</li>
+                        <li>Lower capacitive current contribution</li>
+                      </ul>
+                    </div>
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="font-medium mb-2">Wide Bandwidth</p>
+                      <ul className="list-disc ml-5">
+                        <li>Complex integrated response</li>
+                        <li>Higher frequencies dominate capacitive current</li>
+                        <li>Greater divergence from sine wave model</li>
+                        <li>Higher overall current for same RMS voltage</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <p className="mt-2">Key calculation insight: The capacitive current increases with the cube root of the upper frequency limit due to the f³ term in the integration formula.</p>
+                </div>
+              </div>
             </div>
-          ) : (
+          )}
+          
+          {activeTab === 'safety' && (
             <div className="space-y-8">
               <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-300">
                 <h3 className="font-medium mb-3 text-lg">Human Body Application</h3>
@@ -190,7 +342,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                   <li><strong>Risk levels:</strong>
                     <ul className="list-disc ml-5 mt-1">
                       <li>1-5 mA: Perception threshold, mild tingling sensation</li>
-                      <li>5-10 mA: Painful shock, potential "can't let go" phenomenon</li>
+                      <li>5-10 mA: Painful shock, potential "can&apos;t let go" phenomenon</li>
                       <li>10-100 mA: Muscle contraction, respiratory paralysis</li>
                       <li>&gt;100 mA: Ventricular fibrillation, potentially lethal</li>
                     </ul>
@@ -225,6 +377,91 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                     <li>Consider isolation methods for higher voltage applications</li>
                     <li>Use GFCIs (Ground Fault Circuit Interrupters) for additional protection</li>
                   </ul>
+                </div>
+              </div>
+              
+              {/* Human Body Electrical Model */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-yellow-300">
+                <h3 className="font-medium mb-3 text-lg">Human Body Electrical Model</h3>
+                <div className="space-y-3">
+                  <p className="font-semibold">The human body can be modeled as a complex RC circuit:</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="font-medium mb-2">Resistance Components</p>
+                      <ul className="list-disc ml-5">
+                        <li>Skin resistance: 1-100 kΩ (varies with moisture)</li>
+                        <li>Internal body resistance: 300-1000 Ω</li>
+                        <li>Contact resistance: Variable based on contact area</li>
+                        <li>Hand-to-hand path: ~1500 Ω typical</li>
+                        <li>Hand-to-foot path: ~1000 Ω typical</li>
+                      </ul>
+                    </div>
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="font-medium mb-2">Capacitance Components</p>
+                      <ul className="list-disc ml-5">
+                        <li>Cell membrane capacitance</li>
+                        <li>Skin capacitance: 10-40 nF</li>
+                        <li>Body-to-ground capacitance: 100-200 pF</li>
+                        <li>Frequency-dependent behavior</li>
+                        <li>Skin impedance decreases at higher frequencies</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <p className="mt-3">The human body&apos;s electrical response varies significantly with frequency:</p>
+                  <ul className="list-disc ml-5">
+                    <li>At low frequencies (&le;1 kHz), the body behaves primarily as a resistor</li>
+                    <li>At high frequencies (&gt;10 kHz), capacitive effects become more significant</li>
+                    <li>This changes both the path of current flow and the physiological effects</li>
+                  </ul>
+                  
+                  <div className="bg-yellow-50 p-3 rounded text-sm mt-3">
+                    <p className="font-medium">Important safety consideration:</p>
+                    <p>The perception threshold of 500 μA is valid for DC to 100 Hz. At higher frequencies, this threshold increases, but safety standards typically use the 50-60 Hz threshold as a conservative baseline for all applications.</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Noise vs Sine Wave Safety */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-orange-300">
+                <h3 className="font-medium mb-3 text-lg">Safety: Noise vs Sine Wave</h3>
+                <div className="space-y-3">
+                  <p>Different signal types can have different safety implications:</p>
+                  
+                  <table className="w-full border-collapse mt-2">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="p-2 text-left">Aspect</th>
+                        <th className="p-2 text-left">Sine Wave</th>
+                        <th className="p-2 text-left">White Noise</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="p-2 font-medium">Perception</td>
+                        <td className="p-2">Strong periodic sensation</td>
+                        <td className="p-2">Diffuse, broadband sensation</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-medium">Muscle response</td>
+                        <td className="p-2">Can cause rhythmic contraction</td>
+                        <td className="p-2">Less coordinated muscle response</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-medium">Cardiac risk</td>
+                        <td className="p-2">Higher risk at 50-60 Hz</td>
+                        <td className="p-2">Risk depends on spectral content</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-medium">Current threshold</td>
+                        <td className="p-2">Well-established standards</td>
+                        <td className="p-2">More complex to assess</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  
+                  <p className="mt-3 text-sm italic">Note: Safety assessments for noise signals typically use the RMS current and the most dangerous frequency components to establish a conservative safety threshold.</p>
                 </div>
               </div>
             </div>
