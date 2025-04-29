@@ -40,148 +40,355 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
 
   return (
     <ErrorBoundary>
-      <div className="p-4 max-w-6xl mx-auto">
+      {/* Removed max-w-screen-2xl to use full screen width */}
+      <div className="p-4 w-full mx-auto bg-gray-50">
         <h1 className="text-2xl font-bold mb-4">AC Parallel RC Circuit Analysis</h1>
 
         {/* Error Displays */}
-        <ValidationErrors
-          errors={validationErrors}
-          onReset={resetCircuit}
-        />
-
-        <CalculationError
-          hasError={hasCalculationError}
-          onReset={resetCircuit}
-        />
-
-        <NoiseValidationError
-          error={results.noiseValidationError}
-          onReset={resetCircuit}
-        />
-        
-        <div className="bg-gray-100 p-4 rounded-lg mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-semibold">Circuit Parameters</h2>
-            <button
-              onClick={resetCircuit}
-              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
-            >
-              Reset Parameters
-            </button>
-          </div>
-          
-          {/* Signal Type Selector */}
-          <SignalTypeSelector 
-            signalType={params.signalType} 
-            onToggle={toggleSignalType} 
+        <div className="mb-4">
+          <ValidationErrors
+            errors={validationErrors}
+            onReset={resetCircuit}
           />
-          
-          <div className="flex flex-col md:flex-row">
-            <div className="flex-grow">
-              {/* Resistance and Capacitance Controls */}
-              <ParameterControl
-                paramName="resistance"
-                params={params}
-                textValues={textValues}
-                onParamChange={updateParameter}
-                onTextChange={handleTextChange}
-                hasValidationErrors={checkParamValidationState('resistance')}
-              />
+
+          <CalculationError
+            hasError={hasCalculationError}
+            onReset={resetCircuit}
+          />
+
+          <NoiseValidationError
+            error={results.noiseValidationError}
+            onReset={resetCircuit}
+          />
+        </div>
+        
+        {/* Dashboard Layout */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* Top Row: Parameters and Safety Threshold */}
+          <div className="col-span-8 bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-semibold">Circuit Parameters</h2>
+              <button
+                onClick={resetCircuit}
+                className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm"
+              >
+                Reset Parameters
+              </button>
+            </div>
+            
+            <SignalTypeSelector 
+              signalType={params.signalType} 
+              onToggle={toggleSignalType} 
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <ParameterControl
+                  paramName="resistance"
+                  params={params}
+                  textValues={textValues}
+                  onParamChange={updateParameter}
+                  onTextChange={handleTextChange}
+                  hasValidationErrors={checkParamValidationState('resistance')}
+                />
+                
+                <ParameterControl
+                  paramName="capacitance"
+                  params={params}
+                  textValues={textValues}
+                  onParamChange={updateParameter}
+                  onTextChange={handleTextChange}
+                  hasValidationErrors={checkParamValidationState('capacitance')}
+                />
+              </div>
               
-              <ParameterControl
-                paramName="capacitance"
-                params={params}
-                textValues={textValues}
-                onParamChange={updateParameter}
-                onTextChange={handleTextChange}
-                hasValidationErrors={checkParamValidationState('capacitance')}
-              />
-              
-              {/* Voltage Input - label changes based on signal type */}
-              <ParameterControl
-                paramName="voltage"
-                params={params}
-                textValues={textValues}
-                onParamChange={updateParameter}
-                onTextChange={handleTextChange}
-                hasValidationErrors={checkParamValidationState('voltage')}
-              />
-              
-              {/* Frequency Inputs - conditional based on signal type */}
-              <FrequencyInputs
-                signalType={params.signalType}
-                params={params}
-                textValues={textValues}
-                onParamChange={updateParameter}
-                onTextChange={handleTextChange}
-                validationErrors={validationErrors}
-                noiseValidationError={results.noiseValidationError}
-              />
+              <div>
+                <ParameterControl
+                  paramName="voltage"
+                  params={params}
+                  textValues={textValues}
+                  onParamChange={updateParameter}
+                  onTextChange={handleTextChange}
+                  hasValidationErrors={checkParamValidationState('voltage')}
+                />
+                
+                <FrequencyInputs
+                  signalType={params.signalType}
+                  params={params}
+                  textValues={textValues}
+                  onParamChange={updateParameter}
+                  onTextChange={handleTextChange}
+                  validationErrors={validationErrors}
+                  noiseValidationError={results.noiseValidationError}
+                />
+              </div>
+            </div>
+
+            <div className="mt-2 text-xs text-gray-500 italic">
+              {params.signalType === 'sine'
+                ? "Note: Sine mode calculations assume pure sine waves in AC steady state."
+                : "Note: Noise mode calculations assume white noise across the specified frequency band."}
             </div>
           </div>
+          
+          {/* Human Body Safety Threshold */}
+          <div className="col-span-4 bg-blue-50 rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-2">Human Body Safety Threshold</h2>
 
-          <div className="mt-2 text-xs text-gray-500 italic">
-            {params.signalType === 'sine'
-              ? "Note: Sine mode calculations assume pure sine waves in AC steady state."
-              : "Note: Noise mode calculations assume white noise across the specified frequency band."}
+            <ParameterControl
+              paramName="safeCurrentThreshold"
+              params={params}
+              textValues={textValues}
+              onParamChange={updateParameter}
+              onTextChange={handleTextChange}
+              hasValidationErrors={checkParamValidationState('safeCurrentThreshold')}
+            />
+
+            <div className="text-sm mt-2 mb-4">
+              <span className="text-gray-600">Standard safety threshold is 500 μA (0.5 mA) for most human body applications.</span>
+            </div>
+
+            <SafetyMeter results={results} />
+
+            <div className="mt-2 text-xs text-gray-500 italic">
+              Note: Safety thresholds are frequency-dependent in reality. The model used here is applicable
+              for frequencies up to 2 kHz. At higher frequencies, human sensitivity to electrical current
+              changes significantly.
+            </div>
           </div>
-        </div>
-
-        {/* Frequency Response Analysis */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-semibold mb-4">
-            {params.signalType === 'sine' 
-              ? "Frequency Response Analysis" 
-              : "Frequency Response (Noise Mode)"}
-          </h2>
-          <FrequencyResponseChart
-            frequencyResponseData={frequencyResponseData}
-            results={results}
-            signalType={params.signalType}
-          />
-        </div>
-
-        {/* Circuit Visualizations */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <CircuitVisualizations
-            results={results}
-            determineRegime={determineRegime}
-            signalType={params.signalType}
-          />
-        </div>
-
-        {/* Human Body Safety Threshold */}
-        <div className="bg-blue-50 p-4 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-semibold mb-2">Human Body Safety Threshold</h2>
-
-          <ParameterControl
-            paramName="safeCurrentThreshold"
-            params={params}
-            textValues={textValues}
-            onParamChange={updateParameter}
-            onTextChange={handleTextChange}
-            hasValidationErrors={checkParamValidationState('safeCurrentThreshold')}
-          />
-
-          <div className="text-sm mt-2 mb-4">
-            <span className="text-gray-600">Standard safety threshold is 500 μA (0.5 mA) for most human body applications.</span>
+          
+          {/* Middle Row: Frequency Response and Circuit Characteristics with integrated results */}
+          {/* Frequency Response Analysis - 6 columns */}
+          <div className="col-span-6 bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-4">
+              {params.signalType === 'sine' 
+                ? "Frequency Response Analysis" 
+                : "Frequency Response (Noise Mode)"}
+            </h2>
+            <FrequencyResponseChart
+              frequencyResponseData={frequencyResponseData}
+              results={results}
+              signalType={params.signalType}
+            />
           </div>
 
-          <SafetyMeter results={results} />
+          {/* Circuit Characteristics with integrated Circuit Analysis Results - 6 columns */}
+          <div className="col-span-6 bg-white rounded-lg shadow p-4">
+            
+            {/* Visualizations Component */}
+            <CircuitVisualizations
+              results={results}
+              determineRegime={determineRegime}
+              signalType={params.signalType}
+            />
+            
+            {/* Integrated Circuit Analysis Results */}
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-md font-semibold mb-3">Analysis Results</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2 text-left">Parameter</th>
+                      <th className="p-2 text-left">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Sine-mode specific rows */}
+                    {params.signalType === 'sine' && (
+                      <>
+                        <tr className="border-t">
+                          <td className="p-2">Normalized ωRC</td>
+                          <td className="p-2">{(results.wRC as number).toFixed(4)}</td>
+                        </tr>
+                        <tr className="border-t">
+                          <td className="p-2">Phase Angle</td>
+                          <td className="p-2">{(results.phaseAngle as number).toFixed(2)}°</td>
+                        </tr>
+                        <tr className="border-t">
+                          <td className="p-2">Power Factor</td>
+                          <td className="p-2">{(results.powerFactor as number).toFixed(4)}</td>
+                        </tr>
+                      </>
+                    )}
 
-          <div className="mt-2 text-xs text-gray-500 italic">
-            Note: Safety thresholds are frequency-dependent in reality. The model used here is applicable
-            for frequencies up to 2 kHz. At higher frequencies, human sensitivity to electrical current
-            changes significantly.
+                    {/* Noise-mode specific rows */}
+                    {params.signalType === 'noise' && results.noiseBandwidth && (
+                      <>
+                        <tr className="border-t">
+                          <td className="p-2">Noise Bandwidth</td>
+                          <td className="p-2">{results.noiseBandwidth.min.toFixed(1)} Hz - {results.noiseBandwidth.max.toFixed(1)} Hz</td>
+                        </tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
+
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2 text-left">Parameter</th>
+                      <th className="p-2 text-left">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Common rows for both modes */}
+                    <tr className="border-t">
+                      <td className="p-2">Resistive Current</td>
+                      <td className="p-2 text-green-600">{results.resistivePercent.toFixed(1)}% of total</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="p-2">Capacitive Current</td>
+                      <td className="p-2 text-blue-600">{results.capacitivePercent.toFixed(1)}% of total</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="p-2">Total Current</td>
+                      <td className="p-2">
+                        <span className={results.isSafe ? "text-green-600" : "text-red-600 font-bold"}>
+                          {results.isSafe ? "Safe" : "UNSAFE"}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bottom Row: Analysis Interpretation */}
+          <div className="col-span-12 bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-4">Circuit Analysis Interpretation</h2>
+            
+            <div className="grid grid-cols-3 gap-4">
+              {/* Mathematical Models */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-blue-200">
+                <h3 className="font-medium mb-3">Mathematical Models</h3>
+                
+                <div className={`p-3 rounded border mb-2 ${
+                  params.signalType === 'sine' 
+                    ? 'bg-blue-50 border-blue-300' 
+                    : 'border-gray-300'
+                }`}>
+                  <h4 className="font-medium mb-2 text-blue-800">Sine Wave Model:</h4>
+                  <p>I<sub>total</sub> = √(I<sub>R</sub><sup>2</sup> + I<sub>C</sub><sup>2</sup>)</p>
+                  <p>I<sub>R</sub> = V<sub>rms</sub>/R</p>
+                  <p>I<sub>C</sub> = V<sub>rms</sub>·2πfC</p>
+                  <p className="mt-2 text-sm">ωRC = 2πfRC determines circuit behavior</p>
+                </div>
+                
+                <div className={`p-3 rounded border ${
+                  params.signalType === 'noise' 
+                    ? 'bg-blue-50 border-blue-300' 
+                    : 'border-gray-300'
+                }`}>
+                  <h4 className="font-medium mb-2 text-blue-800">White Noise Model:</h4>
+                  <p>I<sub>total,RMS</sub> = √(I<sub>R,RMS</sub><sup>2</sup> + I<sub>C,RMS</sub><sup>2</sup>)</p>
+                  <p>I<sub>C,RMS</sub> = V<sub>RMS</sub>·2πC·√[(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>)/(3·(f<sub>max</sub> - f<sub>min</sub>))]</p>
+                </div>
+              </div>
+              
+              {/* Regime Analysis */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-green-200">
+                <h3 className="font-medium mb-3">Regime Analysis</h3>
+                <div className="grid grid-cols-3 gap-2 mb-2 text-sm">
+                  <div className={`p-1 rounded text-center ${
+                    (params.signalType === 'sine' && determineRegime() === "Resistive") || 
+                    (params.signalType === 'noise' && results.resistivePercent > results.capacitivePercent)
+                    ? "bg-blue-200 font-bold" : "bg-blue-50"
+                  }`}>
+                    ωRC &lt; 1: Resistive
+                  </div>
+                  <div className={`p-1 rounded text-center ${
+                    (params.signalType === 'sine' && determineRegime() === "Transition Point") || 
+                    (params.signalType === 'noise' && Math.abs(results.resistivePercent - results.capacitivePercent) < 5)
+                    ? "bg-purple-200 font-bold" : "bg-purple-50"
+                  }`}>
+                    ωRC = 1: Transition
+                  </div>
+                  <div className={`p-1 rounded text-center ${
+                    (params.signalType === 'sine' && determineRegime() === "Capacitive") || 
+                    (params.signalType === 'noise' && results.capacitivePercent > results.resistivePercent)
+                    ? "bg-green-200 font-bold" : "bg-green-50"
+                  }`}>
+                    ωRC &gt; 1: Capacitive
+                  </div>
+                </div>
+                
+                {params.signalType === 'sine' ? (
+                  <div className="mt-4">
+                    <p className="font-medium">Current mode: {determineRegime()}</p>
+                    <p>ωRC = {(results.wRC as number).toFixed(4)}</p>
+                    <p>Phase angle: {(results.phaseAngle as number).toFixed(2)}°</p>
+                    <p>Power factor: {(results.powerFactor as number).toFixed(4)}</p>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <p className="font-medium">Noise mode distribution:</p>
+                    <p>Resistive: {results.resistivePercent.toFixed(1)}%</p>
+                    <p>Capacitive: {results.capacitivePercent.toFixed(1)}%</p>
+                    {results.noiseBandwidth && (
+                      <p className="mt-2">Bandwidth: {results.noiseBandwidth.min.toFixed(1)} Hz to {results.noiseBandwidth.max.toFixed(1)} Hz</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Human Body Application */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-200">
+                <h3 className="font-medium mb-3">Human Body Application</h3>
+                <ul className="list-disc pl-5">
+                  <li><strong>Typical human body circuit:</strong> Resistive dominated (ωRC range of 0.001-0.2)</li>
+                  <li><strong>Current level:</strong> {results.isSafe ? 
+                    <span className="text-green-600">Safe</span> : 
+                    <span className="text-red-600 font-bold">UNSAFE</span>}
+                  </li>
+                  <li><strong>Recommendation:</strong> {
+                    results.isSafe
+                      ? "Parameters are within safe operating range"
+                      : "Reduce voltage or increase resistance to ensure safety"
+                  }</li>
+                </ul>
+                
+                <div className="mt-4 p-2 bg-blue-50 rounded text-sm">
+                  <strong>Safety Note:</strong> Thresholds are frequency-dependent. This model is valid up to 2 kHz.
+                  At higher frequencies, human sensitivity to electrical current changes significantly.
+                </div>
+              </div>
+            </div>
+            
+            {/* Additional insights section optimized for wide display */}
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className={`p-3 rounded border ${params.signalType === 'sine' ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                {params.signalType === 'sine' ? (
+                  <>
+                    <h4 className="font-medium mb-2">Sine Wave Insights</h4>
+                    <p>Sine waves show predictable phase relationships, with current and voltage 
+                    shifting based on the balance between resistance and capacitance.</p>
+                    <p className="mt-2">
+                      ωRC value determines if the circuit is predominantly resistive (ωRC &lt; 1) or 
+                      capacitive (ωRC &gt; 1). At exactly ωRC = 1, the circuit reaches a transition point
+                      where resistive and capacitive effects are balanced.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h4 className="font-medium mb-2">White Noise Insights</h4>
+                    <p>Unlike sine waves at a single frequency, white noise contains energy across
+                    the entire frequency spectrum with a flat power spectral density.</p>
+                  </>
+                )}
+              </div>
+              
+              <div className="p-3 rounded border bg-gray-50">
+                <h4 className="font-medium mb-2">Safety Considerations</h4>
+                <p>The human body is primarily resistive at low frequencies, but capacitive 
+                elements become more significant at higher frequencies. AC current as low as 5-10 mA 
+                can cause muscle contraction, while 100 mA can be lethal.</p>
+                <p className="mt-2">Current threshold selected: {results.values.safeCurrentThreshold.toFixed(1)} μA</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Results and Interpretation */}
-        <ResultsAndInterpretation
-          results={results}
-          determineRegime={determineRegime}
-          signalType={params.signalType}
-        />
       </div>
     </ErrorBoundary>
   );
