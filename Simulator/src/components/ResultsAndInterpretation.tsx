@@ -184,9 +184,9 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
               }`}>
                 <h4 className="font-medium mb-2 text-blue-800">Sine Wave Model:</h4>
                 <p>I<sub>total</sub> = √(I<sub>R</sub><sup>2</sup> + I<sub>C</sub><sup>2</sup>)</p>
-                <p>I<sub>R</sub> = V<sub>rms</sub>/R</p>
-                <p>I<sub>C</sub> = V<sub>rms</sub>·2πfC</p>
-                <p>V<sub>rms</sub> = V<sub>pk-pk</sub>/(2√2) for sine waves</p>
+                <p>I<sub>R</sub> = V<sub>RMS</sub>/R</p>
+                <p>I<sub>C</sub> = V<sub>RMS</sub>·2πfC</p>
+                <p>V<sub>RMS</sub> = V<sub>pk-pk</sub>/(2√2) for sine waves</p>
                 <p className="mt-2">The dimensionless parameter <span className="font-semibold">ωRC = 2πfRC</span> determines circuit behavior</p>
                 <p className="text-sm text-gray-600 italic mt-2">Current parameters: {signalType === 'sine' ? `ωRC = ${(wRC as number).toFixed(4)}` : 'Not in sine mode'}</p>
               </div>
@@ -269,7 +269,7 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
                     <p className="mb-2">Sine wave characteristics in RC circuits:</p>
                     <ul className="list-disc pl-5 mb-2 text-sm">
                       <li>Predictable phase relationship between voltage and current</li>
-                      <li>Phase angle: {(phaseAngle as number).toFixed(2)}° ({(phaseAngle as number) < 45 ? "Resistance dominated" : "Capacitance dominated"})</li>
+                      <li>Phase angle (φ): {(phaseAngle as number).toFixed(2)}° ({(phaseAngle as number) < 45 ? "Resistance dominated" : "Capacitance dominated"})</li>
                       <li>Power factor: {(powerFactor as number).toFixed(4)} ({(powerFactor as number) > 0.7 ? "Efficient power transfer" : "Poor power transfer"})</li>
                       <li>Single frequency response at f = {values?.frequency.toFixed(1)} Hz</li>
                     </ul>

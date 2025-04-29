@@ -304,7 +304,7 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
         // Phase angle label (purple)
         ctx.fillStyle = '#9933cc';
-        ctx.fillText('Phase Angle (°)', width / 2, margin.top - 40);
+        ctx.fillText('Phase Angle-φ (°)', width / 2, margin.top - 40);
 
         // Right y-axis (Impedance)
         ctx.beginPath();
@@ -698,7 +698,7 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
           ctx.stroke();
 
           ctx.fillStyle = '#9933cc';
-          ctx.fillText('Phase Angle', legendX + lineLength + 5, legendY + 2 * legendSpacing);
+          ctx.fillText('Phase Angle (φ)', legendX + lineLength + 5, legendY + 2 * legendSpacing);
         } catch (error) {
           console.error("Error drawing legend:", error);
         }

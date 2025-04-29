@@ -16,7 +16,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-xl font-semibold">Circuit Analysis Details</h2>
+          <h2 className="text-xl font-semibold">Circuit Theory & Safety Reference</h2>
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
@@ -53,13 +53,13 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
         <div className="p-6 overflow-y-auto">
           {activeTab === 'equations' ? (
             <div className="space-y-8">
-              <div className="bg-blue-50 p-4 rounded shadow border-l-4 border-blue-300">
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-blue-300">
                 <h3 className="font-medium mb-3 text-lg">Sine Wave Model</h3>
                 <div className="space-y-2">
                   <p>I<sub>total</sub> = √(I<sub>R</sub><sup>2</sup> + I<sub>C</sub><sup>2</sup>)</p>
-                  <p>I<sub>R</sub> = V<sub>rms</sub>/R</p>
-                  <p>I<sub>C</sub> = V<sub>rms</sub>·2πfC</p>
-                  <p>V<sub>rms</sub> = V<sub>pk-pk</sub>/(2√2) for sine waves</p>
+                  <p>I<sub>R</sub> = V<sub>RMS</sub>/R</p>
+                  <p>I<sub>C</sub> = V<sub>RMS</sub>·2πfC</p>
+                  <p>V<sub>RMS</sub> = V<sub>pk-pk</sub>/(2√2) for sine waves</p>
                   <p className="mt-2 font-semibold">The dimensionless parameter ωRC = 2πfRC determines circuit behavior</p>
                   <ul className="list-disc ml-5 mt-2">
                     <li>If ωRC &lt; 1: Resistive dominated</li>
@@ -72,7 +72,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                 </div>
               </div>
               
-              <div className="bg-blue-50 p-4 rounded shadow border-l-4 border-blue-300">
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-green-300">
                 <h3 className="font-medium mb-3 text-lg">White Noise Model</h3>
                 <div className="space-y-2">
                   <p>I<sub>total,RMS</sub> = √(I<sub>R,RMS</sub><sup>2</sup> + I<sub>C,RMS</sub><sup>2</sup>)</p>
@@ -125,7 +125,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
             </div>
           ) : (
             <div className="space-y-8">
-              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-200">
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-300">
                 <h3 className="font-medium mb-3 text-lg">Human Body Application</h3>
                 <ul className="list-disc pl-5">
                   <li><strong>Typical human body circuit:</strong> Resistive dominated (ωRC range of 0.001-0.2)</li>
@@ -148,7 +148,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-red-200">
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-red-300">
                 <h3 className="font-medium mb-3 text-lg">Safety Considerations</h3>
                 <div className="space-y-3">
                   <p><strong>Frequency dependence:</strong> The human body is primarily resistive at low frequencies, but 

@@ -119,7 +119,7 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
 
           {/* Phase Angle */}
           <div>
-            <h3 className="text-sm font-medium mb-1">Phase Angle</h3>
+            <h3 className="text-sm font-medium mb-1">Phase Angle (φ)</h3>
             <div className="relative h-5 bg-gray-200 rounded-lg">
               <div
                 className="h-full bg-purple-500 rounded-lg"
@@ -132,7 +132,7 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
               <span>90° (Pure Capacitive)</span>
             </div>
             <div className="text-xs text-center mt-1 mb-1">
-              Current phase angle: {(phaseAngle as number).toFixed(2)}°
+              Current phase angle (φ): {(phaseAngle as number).toFixed(2)}°
             </div>
           </div>
 

@@ -49,13 +49,13 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
       <div className="p-4 w-full mx-auto bg-gray-50 relative">
         <h1 className="text-2xl font-bold mb-4">AC Parallel RC Circuit Analysis</h1>
         
-        {/* Floating Mathematical Model Button */}
+        {/* Floating Circuit Theory & Safety Button */}
         <button
           onClick={() => setIsModalOpen(true)}
           className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700"
         >
           <BookOpen size={18} />
-          <span>Mathematical Model</span>
+          <span>Circuit Theory & Safety</span>
         </button>
 
         {/* Mathematical Model Modal */}
@@ -228,7 +228,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                           <td className="p-2">{(results.wRC as number).toFixed(4)}</td>
                         </tr>
                         <tr className="border-t">
-                          <td className="p-2">Phase Angle</td>
+                          <td className="p-2">Phase Angle (φ)</td>
                           <td className="p-2">{(results.phaseAngle as number).toFixed(2)}°</td>
                         </tr>
                         <tr className="border-t">
@@ -313,39 +313,6 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                     <p>Current distribution: <span className="font-medium">Resistive {results.resistivePercent.toFixed(1)}%</span>, <span className="font-medium">Capacitive {results.capacitivePercent.toFixed(1)}%</span></p>
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Bottom Row: Analysis Interpretation - Keep insights in place */}
-          <div className="col-span-12 bg-white rounded-lg shadow p-4">
-            <h2 className="text-lg font-semibold mb-4">Circuit Analysis Interpretation</h2>
-            
-            <div className="grid grid-cols-1 gap-4">
-              {/* Additional insights section */}
-              <div className={`p-3 rounded border ${params.signalType === 'sine' ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                {params.signalType === 'sine' ? (
-                  <>
-                    <h4 className="font-medium mb-2">Sine Wave Insights</h4>
-                    <p>Sine waves show predictable phase relationships, with current and voltage 
-                    shifting based on the balance between resistance and capacitance.</p>
-                    <p className="mt-2">
-                      ωRC value determines if the circuit is predominantly resistive (ωRC &lt; 1) or 
-                      capacitive (ωRC &gt; 1). At exactly ωRC = 1, the circuit reaches a transition point
-                      where resistive and capacitive effects are balanced.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h4 className="font-medium mb-2">White Noise Insights</h4>
-                    <p>Unlike sine waves at a single frequency, white noise contains energy across
-                    the entire frequency spectrum with a flat power spectral density.</p>
-                    <p className="mt-2">
-                      Higher frequencies in the noise band contribute more to capacitive current due to
-                      the frequency-dependent nature of capacitive reactance (X<sub>C</sub> = 1/(2πfC)).
-                    </p>
-                  </>
-                )}
               </div>
             </div>
           </div>

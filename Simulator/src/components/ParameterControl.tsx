@@ -41,7 +41,7 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
     if (paramName === 'safeCurrentThreshold') return <>Current Threshold — <b>I<sub>body</sub></b></>;
     if (paramName === 'voltage') {
       return signalType === 'sine' 
-        ? <>Voltage (Pk-Pk) — <b>V<sub>pp</sub></b></>
+        ? <>Voltage (Pk-Pk) — <b>V<sub>pk-pk</sub></b></>
         : <>Voltage (RMS) — <b>V<sub>RMS</sub></b></>;
     }
     if (paramName === 'resistance') return <>Resistance — <b>R<sub>body</sub></b></>;
