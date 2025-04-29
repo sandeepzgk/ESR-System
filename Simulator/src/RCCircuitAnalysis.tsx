@@ -49,14 +49,26 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
       <div className="p-4 w-full mx-auto bg-gray-50 relative">
         <h1 className="text-2xl font-bold mb-4">AC Parallel RC Circuit Analysis</h1>
         
-        {/* Floating Circuit Theory & Safety Button */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700"
-        >
-          <BookOpen size={18} />
-          <span>Circuit Theory & Safety</span>
-        </button>
+        {/* Header buttons container - modified to position both buttons together */}
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          {/* Reset Parameters Button - moved next to Circuit Theory button with updated styling */}
+          <button
+            onClick={resetCircuit}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-400 text-white rounded-md shadow-md hover:bg-rose-500"
+          >
+            <RefreshCw size={18} />
+            <span>Reset All Parameters</span>
+          </button>
+          
+          {/* Circuit Theory & Safety Button - updated styling */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-400 text-white rounded-md shadow-md hover:bg-indigo-500"
+          >
+            <BookOpen size={18} />
+            <span>Circuit Theory & Safety</span>
+          </button>
+        </div>
 
         {/* Mathematical Model Modal */}
         <MathematicalModelModal 
@@ -146,15 +158,6 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                 </div>
               </div>
             </div>
-
-            {/* Floating Reset Button at bottom left corner */}
-            <button
-              onClick={resetCircuit}
-              className="flex items-center gap-1 absolute bottom-4 left-4 px-3 py-1.5 bg-gray-300 rounded hover:bg-gray-400 text-sm shadow-md flex items-center gap-2 px-4 py-2.5 rounded text-sm"
-            >
-              <RefreshCw size={18} />
-              <span>Reset Parameters</span>
-            </button>
           </div>
           
           {/* Human Body Safety Threshold */}
