@@ -25,50 +25,58 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      // Set up high DPI canvas for crisp rendering
       const setupHiDPICanvas = (canvas: HTMLCanvasElement) => {
         // Get the device pixel ratio
         const dpr = window.devicePixelRatio || 1;
-
-        // Get the current size from styles
+        
+        // Get the current CSS dimensions
         const rect = canvas.getBoundingClientRect();
-
-        // Set the canvas's internal size to match the display size times the pixel ratio
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-
-        // Set the display size back to what it was using CSS
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-
-        // Scale the context to match the pixel ratio
+        
+        // Logical size (CSS pixels)
+        const logicalWidth = rect.width;
+        const logicalHeight = rect.height;
+        
+        // Physical size (actual pixels)
+        canvas.width = logicalWidth * dpr;
+        canvas.height = logicalHeight * dpr;
+        
+        // Set display size via CSS
+        canvas.style.width = `${logicalWidth}px`;
+        canvas.style.height = `${logicalHeight}px`;
+        
+        // Get the context and scale it
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.scale(dpr, dpr);
-          return ctx;
+          return { ctx, width: logicalWidth, height: logicalHeight, dpr };
         }
         return null;
       };
 
+      // Initialize the HiDPI canvas
+      const canvasSetup = setupHiDPICanvas(canvas);
+      if (!canvasSetup) return;
+      
+      const { ctx, width, height, dpr } = canvasSetup;
+      
+      // Clear the canvas
+      ctx.clearRect(0, 0, width, height);
+
       // Skip rendering if in noise mode - not applicable
       if (signalType === 'noise') {
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         // Display message explaining chart is not available in noise mode
         ctx.fillStyle = '#666';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Frequency response chart not available in noise mode', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText('Frequency response chart not available in noise mode', width / 2, height / 2 - 20);
 
         ctx.font = '14px Arial';
-        ctx.fillText('This visualization applies only to single-frequency sine wave analysis', canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillText('This visualization applies only to single-frequency sine wave analysis', width / 2, height / 2 + 10);
 
         if (noiseBandwidth) {
           ctx.fillStyle = '#0066cc';
-          ctx.fillText(`Current noise bandwidth: ${noiseBandwidth.min} Hz to ${noiseBandwidth.max} Hz`, canvas.width / 2, canvas.height / 2 + 40);
+          ctx.fillText(`Current noise bandwidth: ${noiseBandwidth.min} Hz to ${noiseBandwidth.max} Hz`, width / 2, height / 2 + 40);
         }
 
         return;
@@ -79,12 +87,7 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
       // Skip rendering if data hasn't changed meaningfully
       renderCountRef.current++;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
       // Improved margins to prevent text cut-off
-      const width = canvas.width;
-      const height = canvas.height;
       const margin = {
         top: 70,     // Increased top margin for labels above chart
         right: 120,  // Increased right margin for impedance values
@@ -93,65 +96,6 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
       };
       const plotWidth = width - margin.left - margin.right;
       const plotHeight = height - margin.top - margin.bottom;
-
-      // Clear canvas
-      ctx.clearRect(0, 0, width, height);
-
-      // Draw grid lines first (behind all other elements)
-      const drawGrid = () => {
-        ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
-        ctx.lineWidth = 0.5;
-
-        // Draw grid only if we have valid data
-        if (!data || data.length === 0) return;
-
-        const validFrequencies = data.map(d => d.frequency).filter(f => isFinite(f) && f > 0);
-        if (validFrequencies.length === 0) return;
-
-        const minFreq = Math.min(...validFrequencies);
-        const maxFreq = Math.max(...validFrequencies);
-
-        // Protect against zero or infinity
-        if (minFreq <= 0 || !isFinite(minFreq) || maxFreq <= 0 || !isFinite(maxFreq) || minFreq === maxFreq) {
-          return;
-        }
-
-        const logMin = Math.log10(minFreq);
-        const logMax = Math.log10(maxFreq);
-
-        // Vertical grid lines (logarithmic for frequency)
-        for (let i = Math.ceil(logMin); i <= Math.floor(logMax); i++) {
-          const tickFreq = Math.pow(10, i);
-          const x = margin.left + (Math.log10(tickFreq) - logMin) / (logMax - logMin) * plotWidth;
-
-          ctx.beginPath();
-          ctx.moveTo(x, margin.top);
-          ctx.lineTo(x, height - margin.bottom);
-          ctx.stroke();
-
-          // Additional lines between major log divisions (2, 3, 4, 5, etc.)
-          for (let j = 2; j <= 9; j++) {
-            const minorTickFreq = Math.pow(10, i - 1) * j;
-            if (minorTickFreq >= minFreq && minorTickFreq <= maxFreq) {
-              const minorX = margin.left + (Math.log10(minorTickFreq) - logMin) / (logMax - logMin) * plotWidth;
-              ctx.beginPath();
-              ctx.moveTo(minorX, margin.top);
-              ctx.lineTo(minorX, height - margin.bottom);
-              ctx.stroke();
-            }
-          }
-        }
-
-        // Horizontal grid lines
-        const horizontalLines = 10; // Number of horizontal grid lines
-        for (let i = 0; i <= horizontalLines; i++) {
-          const y = margin.top + (i / horizontalLines) * plotHeight;
-          ctx.beginPath();
-          ctx.moveTo(margin.left, y);
-          ctx.lineTo(width - margin.right, y);
-          ctx.stroke();
-        }
-      };
 
       // If there's an error, show error message
       if (error) {
@@ -220,11 +164,70 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
           Math.abs(closest.frequency - currentFrequency) ? point : closest;
       }, data[0]);
 
-      // Now draw the grid
-      drawGrid();
+      // Draw grid lines first (behind all other elements)
+      const drawGrid = () => {
+        ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+        ctx.lineWidth = 0.5;
+
+        // Draw grid only if we have valid data
+        if (!data || data.length === 0) return;
+
+        const validFrequencies = data.map(d => d.frequency).filter(f => isFinite(f) && f > 0);
+        if (validFrequencies.length === 0) return;
+
+        const minFreq = Math.min(...validFrequencies);
+        const maxFreq = Math.max(...validFrequencies);
+
+        // Protect against zero or infinity
+        if (minFreq <= 0 || !isFinite(minFreq) || maxFreq <= 0 || !isFinite(maxFreq) || minFreq === maxFreq) {
+          return;
+        }
+
+        const logMin = Math.log10(minFreq);
+        const logMax = Math.log10(maxFreq);
+
+        // Vertical grid lines (logarithmic for frequency)
+        for (let i = Math.ceil(logMin); i <= Math.floor(logMax); i++) {
+          const tickFreq = Math.pow(10, i);
+          const x = margin.left + (Math.log10(tickFreq) - logMin) / (logMax - logMin) * plotWidth;
+
+          ctx.beginPath();
+          ctx.moveTo(x, margin.top);
+          ctx.lineTo(x, height - margin.bottom);
+          ctx.stroke();
+
+          // Additional lines between major log divisions (2, 3, 4, 5, etc.)
+          for (let j = 2; j <= 9; j++) {
+            const minorTickFreq = Math.pow(10, i - 1) * j;
+            if (minorTickFreq >= minFreq && minorTickFreq <= maxFreq) {
+              const minorX = margin.left + (Math.log10(minorTickFreq) - logMin) / (logMax - logMin) * plotWidth;
+              ctx.beginPath();
+              ctx.moveTo(minorX, margin.top);
+              ctx.lineTo(minorX, height - margin.bottom);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Horizontal grid lines
+        const horizontalLines = 10; // Number of horizontal grid lines
+        for (let i = 0; i <= horizontalLines; i++) {
+          const y = margin.top + (i / horizontalLines) * plotHeight;
+          ctx.beginPath();
+          ctx.moveTo(margin.left, y);
+          ctx.lineTo(width - margin.right, y);
+          ctx.stroke();
+        }
+      };
 
       // Draw chart frame with improved spacing
       const drawChartFrame = () => {
+        // Title
+        //ctx.fillStyle = 'black';
+        //ctx.font = 'bold 16px Arial';
+        //ctx.textAlign = 'center';
+        //ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
+        
         // X-axis
         ctx.strokeStyle = '#999';
         ctx.lineWidth = 1;
@@ -316,81 +319,76 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.fillText('Impedance (Ω)', width - margin.right, margin.top - 40);
 
         // Add Y-axis tick marks with better scaling
-        const addYAxisTicks = () => {
-          // Left Y-axis for Current (blue)
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-          ctx.font = '10px Arial';
-          ctx.fillStyle = '#0066cc';
+        // Left Y-axis for Current (blue)
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#0066cc';
 
-          // Better current tick values
-          // Use 5 ticks with dynamically calculated values
-          const currentTickCount = 5;
-          for (let i = 0; i < currentTickCount; i++) {
-            const value = i * (maxCurrent / (currentTickCount - 1));
-            const y = height - margin.bottom - (value / maxCurrent * plotHeight);
+        // Better current tick values
+        // Use 5 ticks with dynamically calculated values
+        const currentTickCount = 5;
+        for (let i = 0; i < currentTickCount; i++) {
+          const value = i * (maxCurrent / (currentTickCount - 1));
+          const y = height - margin.bottom - (value / maxCurrent * plotHeight);
 
-            // Ensure y is within chart bounds
-            if (y >= margin.top && y <= height - margin.bottom) {
-              ctx.beginPath();
-              ctx.moveTo(margin.left - 5, y);
-              ctx.lineTo(margin.left, y);
-              ctx.stroke();
+          // Ensure y is within chart bounds
+          if (y >= margin.top && y <= height - margin.bottom) {
+            ctx.beginPath();
+            ctx.moveTo(margin.left - 5, y);
+            ctx.lineTo(margin.left, y);
+            ctx.stroke();
 
-              // Format with appropriate precision based on value
-              let formattedValue = value.toFixed(4);
-              if (value >= 0.01) formattedValue = value.toFixed(2);
-              if (value >= 0.1) formattedValue = value.toFixed(1);
-              if (value >= 1) formattedValue = value.toFixed(0);
+            // Format with appropriate precision based on value
+            let formattedValue = value.toFixed(4);
+            if (value >= 0.01) formattedValue = value.toFixed(2);
+            if (value >= 0.1) formattedValue = value.toFixed(1);
+            if (value >= 1) formattedValue = value.toFixed(0);
 
-              ctx.fillText(formattedValue, margin.left - 8, y);
-            }
+            ctx.fillText(formattedValue, margin.left - 8, y);
           }
+        }
 
-          // Add Phase Angle ticks (purple)
-          ctx.fillStyle = '#9933cc';
-          // Use degree markers from -90 to +90
-          for (let degree = -90; degree <= 90; degree += 30) {
-            // Map phase angle to y-coordinate
-            const y = height - margin.bottom - ((degree + 90) / 180 * plotHeight);
+        // Add Phase Angle ticks (purple)
+        ctx.fillStyle = '#9933cc';
+        // Use degree markers from -90 to +90
+        for (let degree = -90; degree <= 90; degree += 30) {
+          // Map phase angle to y-coordinate
+          const y = height - margin.bottom - ((degree + 90) / 180 * plotHeight);
 
-            // Only draw if in chart bounds
-            if (y >= margin.top && y <= height - margin.bottom) {
-              ctx.beginPath();
-              ctx.moveTo(margin.left - 35, y);
-              ctx.lineTo(margin.left - 30, y);
-              ctx.stroke();
-              ctx.fillText(degree + "°", margin.left - 38, y);
-            }
+          // Only draw if in chart bounds
+          if (y >= margin.top && y <= height - margin.bottom) {
+            ctx.beginPath();
+            ctx.moveTo(margin.left - 35, y);
+            ctx.lineTo(margin.left - 30, y);
+            ctx.stroke();
+            ctx.fillText(degree + "°", margin.left - 38, y);
           }
+        }
 
-          // Right Y-axis (Impedance)
-          ctx.textAlign = 'left';
-          ctx.fillStyle = '#cc6600';
+        // Right Y-axis (Impedance)
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#cc6600';
 
-          // Make impedance ticks more meaningful
-          const impTickCount = 5;
-          for (let i = 0; i < impTickCount; i++) {
-            const value = i * (maxImpedance / (impTickCount - 1));
-            const y = height - margin.bottom - (value / maxImpedance * plotHeight);
+        // Make impedance ticks more meaningful
+        const impTickCount = 5;
+        for (let i = 0; i < impTickCount; i++) {
+          const value = i * (maxImpedance / (impTickCount - 1));
+          const y = height - margin.bottom - (value / maxImpedance * plotHeight);
 
-            if (y >= margin.top && y <= height - margin.bottom) {
-              ctx.beginPath();
-              ctx.moveTo(width - margin.right, y);
-              ctx.lineTo(width - margin.right + 5, y);
-              ctx.stroke();
+          if (y >= margin.top && y <= height - margin.bottom) {
+            ctx.beginPath();
+            ctx.moveTo(width - margin.right, y);
+            ctx.lineTo(width - margin.right + 5, y);
+            ctx.stroke();
 
-              // Format impedance values
-              let formatted = value.toFixed(0) + ' Ω';
-              if (value >= 1000) formatted = (value / 1000).toFixed(1) + ' kΩ';
+            // Format impedance values
+            let formatted = value.toFixed(0) + ' Ω';
+            if (value >= 1000) formatted = (value / 1000).toFixed(1) + ' kΩ';
 
-              ctx.fillText(formatted, width - margin.right + 8, y);
-            }
+            ctx.fillText(formatted, width - margin.right + 8, y);
           }
-        };
-
-        // Add Y-axis ticks
-        addYAxisTicks();
+        }
       };
 
       // Draw impedance curve
@@ -708,6 +706,8 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
       // Draw chart with comprehensive error handling
       try {
+        // Draw the chart in proper order
+        drawGrid();
         drawChartFrame();
 
         // Only draw curves if we have valid data
@@ -797,7 +797,7 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ref={canvasRef}
         width="850"
         height="550" // Increased height to accommodate legend below chart
-        className="border border-gray-300 rounded mx-auto w-full"
+        className="border border-gray-300 rounded mx-auto"
       />
 
       <div className="mt-2 text-sm text-left text-gray-600">
