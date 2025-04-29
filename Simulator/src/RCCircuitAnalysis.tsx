@@ -14,6 +14,7 @@ import CircuitVisualizations from './components/CircuitVisualizations';
 import SafetyMeter from './components/SafetyMeter';
 import ResultsAndInterpretation from './components/ResultsAndInterpretation';
 import MathematicalModelModal from './components/MathematicalModelModal';
+import ResolutionCheckModal from './components/ResolutionCheckModal';
 import { RefreshCw, BookOpen } from 'lucide-react';
 
 interface RCCircuitAnalysisProps {
@@ -45,6 +46,9 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
 
   return (
     <ErrorBoundary>
+      {/* Add Resolution Check Modal */}
+      <ResolutionCheckModal />
+      
       {/* Removed max-w-screen-2xl to use full screen width */}
       <div className="p-4 w-full mx-auto bg-gray-50 relative">
         <h1 className="text-2xl font-bold mb-4">AC Parallel RC Circuit Analysis</h1>
