@@ -7,15 +7,28 @@ interface SignalTypeSelectorProps {
 }
 
 const SignalTypeSelector: React.FC<SignalTypeSelectorProps> = ({ signalType, onToggle }) => {
+  // Modified to set specific modes instead of toggling
+  const setSineMode = () => {
+    if (signalType !== 'sine') {
+      onToggle();
+    }
+  };
+
+  const setNoiseMode = () => {
+    if (signalType !== 'noise') {
+      onToggle();
+    }
+  };
+
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+    <div className="mb-1">
+      <label className="block text-xs font-medium text-gray-700 mb-1">
         Signal Type
       </label>
       <div className="flex space-x-2">
         <button
-          onClick={onToggle}
-          className={`flex items-center gap-2 px-4 py-2 rounded ${
+          onClick={setSineMode}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded text-sm ${
             signalType === 'sine'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -25,8 +38,8 @@ const SignalTypeSelector: React.FC<SignalTypeSelectorProps> = ({ signalType, onT
           <span>Sine Wave</span>
         </button>
         <button
-          onClick={onToggle}
-          className={`flex items-center gap-2 px-4 py-2 rounded ${
+          onClick={setNoiseMode}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded text-sm ${
             signalType === 'noise'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -36,10 +49,10 @@ const SignalTypeSelector: React.FC<SignalTypeSelectorProps> = ({ signalType, onT
           <span>White Noise</span>
         </button>
       </div>
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="mt-1 text-xs text-gray-500">
         {signalType === 'sine' 
-          ? 'Sine wave mode: Single frequency analysis with peak-to-peak voltage input' 
-          : 'White noise mode: Gaussian random signal with equal power across the specified frequency band (RMS voltage input)'}
+          ? 'Sine wave: Single frequency' 
+          : 'White noise: Frequency band'}
       </div>
     </div>
   );

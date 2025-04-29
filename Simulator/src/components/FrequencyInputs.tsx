@@ -72,96 +72,95 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
         />
       ) : (
         // Noise mode - dual slider for min and max frequency
-        <div>
+        <div className="mb-2">
           {hasNoiseValidationError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-md">
-              <p className="text-red-700 text-sm">{noiseValidationError}</p>
+            <div className="mb-1 p-1 bg-red-50 border border-red-300 rounded-md">
+              <p className="text-red-700 text-xs">{noiseValidationError}</p>
             </div>
           )}
           
-          <div className="mb-4">
-            <label className={`block text-sm font-medium ${hasNoiseValidationError ? 'text-yellow-700' : 'text-gray-700'}`}>
+          <div className={`flex items-center rounded-md px-3 py-2 border border-gray-200 mb-1 bg-white`}>
+            <div className={`w-48 text-sm font-medium ${hasNoiseValidationError ? 'text-yellow-700' : 'text-gray-700'}`}>
               Noise Frequency Range
-            </label>
-            
-            <div className="mt-6 mb-2 relative">
-              {/* Track */}
-              <div className="w-full h-2 bg-gray-200 rounded-md absolute top-1/2 transform -translate-y-1/2"></div>
-              
-              {/* Selected area */}
-              <div 
-                className="h-2 bg-blue-500 rounded-md absolute top-1/2 transform -translate-y-1/2"
-                style={{
-                  left: `${(minValue / 2000) * 100}%`,
-                  width: `${((maxValue - minValue) / 2000) * 100}%`
-                }}
-              ></div>
-              
-              {/* Min handle - FIXED: increased z-index to be higher than max handle */}
-              <input
-                type="range"
-                min="1"
-                max="2000"
-                value={minValue}
-                onChange={handleMinChange}
-                className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
-                style={{ height: '20px', outline: 'none', zIndex: 3 }}
-              />
-              
-              {/* Max handle - kept original z-index */}
-              <input
-                type="range"
-                min="1"
-                max="2000"
-                value={maxValue}
-                onChange={handleMaxChange}
-                className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
-                style={{ height: '20px', outline: 'none', zIndex: 2 }}
-              />
             </div>
             
-            <div className="flex justify-between text-xs mt-8">
-              <span>1 Hz</span>
-              <span>500 Hz</span>
-              <span>1000 Hz</span>
-              <span>1500 Hz</span>
-              <span>2000 Hz</span>
-            </div>
-            
-            {/* Input boxes for precise control */}
-            <div className="flex justify-between gap-4 mt-6">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Min Frequency (Hz)
-                </label>
+            {/* All controls in a single line */}
+            <div className="flex-grow flex items-center space-x-3">
+              {/* Min Frequency Input and Label in a group */}
+              <div className="flex items-center">
                 <input
                   type="text"
                   value={textValues.noiseMinFrequency}
                   onChange={(e) => onTextChange('noiseMinFrequency', e.target.value)}
-                  className={`w-full px-2 py-1 border rounded-md ${
+                  className={`w-16 px-2 py-1 text-sm border rounded ${
                     hasNoiseValidationError ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
                   }`}
                 />
+                <label className="text-sm ml-1 whitespace-nowrap">Min (Hz)</label>
               </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Max Frequency (Hz)
-                </label>
+              
+              {/* Dual Slider */}
+              <div className="flex-grow relative h-10 mx-2">
+                {/* Track */}
+                <div className="w-full h-2 bg-gray-200 rounded-md absolute top-1/2 transform -translate-y-1/2"></div>
+                
+                {/* Selected area */}
+                <div 
+                  className="h-2 bg-blue-500 rounded-md absolute top-1/2 transform -translate-y-1/2"
+                  style={{
+                    left: `${(minValue / 2000) * 100}%`,
+                    width: `${((maxValue - minValue) / 2000) * 100}%`
+                  }}
+                ></div>
+                
+                {/* Min handle with increased vertical space */}
+                <input
+                  type="range"
+                  min="1"
+                  max="2000"
+                  value={minValue}
+                  onChange={handleMinChange}
+                  className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
+                  style={{ height: '28px', outline: 'none', zIndex: 3 }}
+                />
+                
+                {/* Max handle with increased vertical space */}
+                <input
+                  type="range"
+                  min="1"
+                  max="2000"
+                  value={maxValue}
+                  onChange={handleMaxChange}
+                  className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
+                  style={{ height: '28px', outline: 'none', zIndex: 2 }}
+                />
+                
+                {/* Tick marks */}
+                <div className="absolute bottom-0 w-full flex justify-between text-xs text-gray-500">
+                  <span>1</span>
+                  <span>500</span>
+                  <span>1000</span>
+                  <span>1500</span>
+                  <span>2000</span>
+                </div>
+              </div>
+              
+              {/* Max Frequency Input and Label in a group */}
+              <div className="flex items-center">
                 <input
                   type="text"
                   value={textValues.noiseMaxFrequency}
                   onChange={(e) => onTextChange('noiseMaxFrequency', e.target.value)}
-                  className={`w-full px-2 py-1 border rounded-md ${
+                  className={`w-16 px-2 py-1 text-sm border rounded ${
                     hasNoiseValidationError ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
                   }`}
                 />
+                <label className="text-sm ml-1 whitespace-nowrap">Max (Hz)</label>
               </div>
             </div>
           </div>
           
-          <div className="mt-2 text-xs text-gray-600 italic">
-            Frequencies must be within the range of 1 Hz to 2000 Hz, and min frequency must be less than max frequency.
-          </div>
+        
         </div>
       )}
     </div>

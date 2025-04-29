@@ -12,7 +12,7 @@ interface ParameterControlProps {
   hasValidationErrors: boolean;
 }
 
-// Optimized parameter control component
+// Optimized parameter control component with horizontal layout
 const ParameterControl: React.FC<ParameterControlProps> = ({
   paramName,
   params,
@@ -38,10 +38,10 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
   const getLabel = () => {
     const signalType = params.signalType;
     
-    if (paramName === 'safeCurrentThreshold') return <>Safe Current Threshold — <b>I<sub>body</sub></b></>;
+    if (paramName === 'safeCurrentThreshold') return <>Current Threshold — <b>I<sub>body</sub></b></>;
     if (paramName === 'voltage') {
       return signalType === 'sine' 
-        ? <>Voltage (Peak-to-Peak) — <b>V<sub>pp</sub></b></>
+        ? <>Voltage (Pk-Pk) — <b>V<sub>pp</sub></b></>
         : <>Voltage (RMS) — <b>V<sub>RMS</sub></b></>;
     }
     if (paramName === 'resistance') return <>Resistance — <b>R<sub>body</sub></b></>;
@@ -54,39 +54,47 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
   };
 
   return (
-    <div className="mb-4">
-      <label className={`block text-sm font-medium ${hasValidationErrors ? 'text-yellow-700' : 'text-gray-700'}`}>
+    <div className={` py-2 flex items-center rounded-md px-3 bg-white border border-gray-200`}>
+      {/* Label on the left side */}
+      <div className={`w-48 text-sm font-medium ${hasValidationErrors ? 'text-yellow-700' : 'text-gray-700'}`}>
         {getLabel()}
-      </label>
-      <div className="flex space-x-2">
-        <div className="flex-grow">
-          <input
-            type="range"
-            min={range[0]}
-            max={range[1]}
-            step={(range[1] - range[0]) / 100}
-            value={value}
-            onChange={(e) => onParamChange(paramName, { value: parseFloat(e.target.value) })}
-            className={`w-full ${hasValidationErrors ? 'accent-yellow-500' : ''}`}
-          />
+      </div>
+      
+      {/* Controls on the right side */}
+      <div className="flex-grow flex items-center space-x-3">
+        {/* Slider with min/max values underneath */}
+        <div className="flex-grow flex flex-col">
+          <div className="flex-grow flex items-center h-8">
+            <input
+              type="range"
+              min={range[0]}
+              max={range[1]}
+              step={(range[1] - range[0]) / 100}
+              value={value}
+              onChange={(e) => onParamChange(paramName, { value: parseFloat(e.target.value) })}
+              className={`w-full ${hasValidationErrors ? 'accent-yellow-500' : ''}`}
+            />
+          </div>
           <div className="flex justify-between text-xs mt-1">
-            <span>{`${range[0]} ${unit}`}</span>
-            <span>{`${range[1]} ${unit}`}</span>
-          </div>        
+            <span>{`${range[0]}`}</span>
+            <span>{`${range[1]}`}</span>
+          </div>
         </div>
-        <div className="flex w-48">
+        
+        {/* Text input and unit selector */}
+        <div className="flex h-8 items-center">
           <input
             type="text"
             value={textValue}
             onChange={(e) => onTextChange(paramName, e.target.value)}
-            className={`w-24 px-2 py-1 border rounded-l-md text-right ${
+            className={`w-20 px-2 py-1 text-sm border rounded-l-md text-right ${
               hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
             }`}
           />
           <select
             value={unit}
             onChange={(e) => onParamChange(paramName, { unit: e.target.value })}
-            className={`w-24 border rounded-r-md text-sm ${
+            className={`w-16 border rounded-r-md text-sm py-1 ${
               hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300 bg-gray-50'
             }`}
           >
