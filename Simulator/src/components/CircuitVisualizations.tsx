@@ -69,10 +69,10 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
 
   return (
     <div className="mb-2">
-      <h2 className="text-lg font-semibold mb-2">Circuit Characteristics</h2>
+      <h2 className="text-lg font-semibold mb-1">Circuit Characteristics</h2>
 
       {/* Current Distribution - shown for both modes */}
-      <div className="mb-2">
+      <div className="mb-1">
         <div className="flex items-center mb-1">
           <div className="w-24 text-sm">Resistive:</div>
           <div className="flex-grow h-5 bg-gray-200 rounded-full overflow-hidden">
@@ -98,11 +98,11 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
 
       {/* Show sine-wave specific visualizations only in sine mode */}
       {signalType === 'sine' && hasValidSineResults && (
-        <div className="space-y-1">
+        <div className="space-y-0"> {/* Changed from space-y-1 to space-y-0 */}
           {/* ωRC Parameter Space */}
           <div>
-            <h3 className="text-sm font-medium mb-1">ωRC Parameter Space</h3>
-            <div className="relative h-6 bg-gray-200 rounded-lg">
+            <h3 className="text-sm font-medium mt-1 mb-0.5">ωRC Parameter Space</h3> {/* Reduced mb from mb-1 to mb-0.5 */}
+            <div className="relative h-5 bg-gray-200 rounded-lg"> {/* Reduced height from h-6 to h-5 */}
               <div className="absolute top-0 h-full w-1/2 border-r-2 border-red-500"></div>
               <div
                 className="absolute top-0 h-full w-4 bg-blue-500 rounded-full transform -translate-x-1/2"
@@ -112,45 +112,45 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
               <div className="absolute top-full mt-0.5 left-1/2 transform -translate-x-1/2 text-xs">1 (Transition)</div>
               <div className="absolute top-full mt-0.5 right-0 text-xs">1000 (Capacitive)</div>
             </div>
-            <div className="text-xs text-center mt-4 mb-1">
+            <div className="text-xs text-center mt-3 mb-0.5"> {/* Reduced mb from mb-1 to mb-0.5 */}
               Current ωRC = {(wRC as number).toFixed(4)} ({determineRegime()} regime)
             </div>
           </div>
 
           {/* Phase Angle */}
           <div>
-            <h3 className="text-sm font-medium mb-1">Phase Angle (φ)</h3>
-            <div className="relative h-5 bg-gray-200 rounded-lg">
+            <h3 className="text-sm font-medium mb-0.5">Phase Angle (φ)</h3> {/* Reduced mb from mb-1 to mb-0.5 */}
+            <div className="relative h-4 bg-gray-200 rounded-lg"> {/* Reduced height from h-5 to h-4 */}
               <div
                 className="h-full bg-purple-500 rounded-lg"
                 style={{ width: `${Math.min(Math.max(((phaseAngle as number) / 90) * 100, 0), 100)}%` }}
               ></div>
             </div>
-            <div className="flex justify-between text-xs mt-0.5">
+            <div className="flex justify-between text-xs mt-0.5"> {/* Already minimal */}
               <span>0° (Pure Resistive)</span>
               <span>45° (ωRC = 1)</span>
               <span>90° (Pure Capacitive)</span>
             </div>
-            <div className="text-xs text-center mt-1 mb-1">
+            <div className="text-xs text-center mt-1 mb-0.5"> {/* Changed mb-1 to mb-0.5 */}
               Current phase angle (φ): {(phaseAngle as number).toFixed(2)}°
             </div>
           </div>
 
           {/* Power Factor */}
           <div>
-            <h3 className="text-sm font-medium mb-1">Power Factor</h3>
-            <div className="relative h-5 bg-gray-200 rounded-lg">
+            <h3 className="text-sm font-medium mb-0.5">Power Factor</h3> {/* Reduced mb from mb-1 to mb-0.5 */}
+            <div className="relative h-4 bg-gray-200 rounded-lg"> {/* Reduced height from h-5 to h-4 */}
               <div
                 className="h-full bg-yellow-500 rounded-lg"
                 style={{ width: `${Math.min(Math.max((powerFactor as number) * 100, 0), 100)}%` }}
               ></div>
             </div>
-            <div className="flex justify-between text-xs mt-0.5">
+            <div className="flex justify-between text-xs mt-0.5"> {/* Already minimal */}
               <span>0 (Pure Capacitive)</span>
               <span>0.707 (ωRC = 1)</span>
               <span>1 (Pure Resistive)</span>
             </div>
-            <div className="text-xs text-center mt-1">
+            <div className="text-xs text-center mt-1"> {/* Already minimal */}
               Current power factor: {(powerFactor as number).toFixed(4)}
             </div>
           </div>
@@ -159,7 +159,7 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
 
       {/* Show noise-mode specific visualizations */}
       {signalType === 'noise' && noiseBandwidth && (
-        <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+        <div className="mt-2 p-2 bg-blue-50 rounded-lg"> {/* Reduced p-3 to p-2 */}
           <h3 className="text-md font-medium mb-1">Noise Bandwidth Analysis</h3>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white p-2 rounded shadow">
@@ -180,7 +180,7 @@ const CircuitVisualizations: React.FC<CircuitVisualizationsProps> = ({
             </div>
           </div>
           
-          <div className="mt-2 text-xs text-center text-gray-600">
+          <div className="mt-1 text-xs text-center text-gray-600"> {/* Reduced mt-2 to mt-1 */}
             In noise mode, the capacitive current increases with broader bandwidth and higher frequencies due to the
             frequency-dependent impedance of capacitors.
           </div>

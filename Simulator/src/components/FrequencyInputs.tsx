@@ -61,7 +61,6 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
   return (
     <div>
       {signalType === 'sine' ? (
-        // Sine wave mode - single frequency input
         <ParameterControl
           paramName="frequency"
           params={params}
@@ -71,7 +70,6 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
           hasValidationErrors={checkParamValidationState('frequency')}
         />
       ) : (
-        // Noise mode - dual slider for min and max frequency
         <div className="mb-2">
           {hasNoiseValidationError && (
             <div className="mb-1 p-1 bg-red-50 border border-red-300 rounded-md">
@@ -84,9 +82,7 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
               Noise Frequency Range
             </div>
             
-            {/* All controls in a single line */}
             <div className="flex-grow flex items-center space-x-3">
-              {/* Min Frequency Input and Label in a group */}
               <div className="flex items-center">
                 <input
                   type="text"
@@ -99,44 +95,58 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                 <label className="text-sm ml-1 whitespace-nowrap">Min (Hz)</label>
               </div>
               
-              {/* Dual Slider */}
-              <div className="flex-grow relative h-10 mx-2">
-                {/* Track */}
-                <div className="w-full h-2 bg-gray-200 rounded-md absolute top-1/2 transform -translate-y-1/2"></div>
+              <div className="flex-grow mx-2">
+                <div className="relative" style={{ height: "32px" }}>
+                  <div className="absolute w-full h-2 bg-gray-200 border border-gray-300 rounded-md top-1/2 transform -translate-y-1/2"></div>
+                  
+                  <div 
+                    className="absolute h-2 bg-gray-500 rounded-md top-1/2 transform -translate-y-1/2"
+                    style={{
+                      left: `${(minValue / 2000) * 100}%`,
+                      width: `${((maxValue - minValue) / 2000) * 140}%`
+                    }}
+                  ></div>
+                  
+                  <div className="relative w-full h-full flex items-center">
+                    <input
+                      type="range"
+                      min="1"
+                      max="2000"
+                      step="1"
+                      value={minValue}
+                      onChange={handleMinChange}
+                      className={`absolute w-1/2 appearance-none bg-transparent outline-none cursor-pointer ${
+                        hasNoiseValidationError ? 'accent-yellow-500' : ''
+                      }`}
+                      style={{
+                        left: '0',
+                        pointerEvents: 'auto',
+                        zIndex: 10,
+                        height: '100%'
+                      }}
+                    />
+                    
+                    <input
+                      type="range"
+                      min="1" 
+                      max="2000"
+                      step="1"
+                      value={maxValue}
+                      onChange={handleMaxChange}
+                      className={`absolute w-1/2 appearance-none bg-transparent outline-none cursor-pointer ${
+                        hasNoiseValidationError ? 'accent-yellow-500' : ''
+                      }`}
+                      style={{
+                        right: '0',
+                        pointerEvents: 'auto',
+                        zIndex: 20,
+                        height: '100%'
+                      }}
+                    />
+                  </div>
+                </div>
                 
-                {/* Selected area */}
-                <div 
-                  className="h-2 bg-blue-500 rounded-md absolute top-1/2 transform -translate-y-1/2"
-                  style={{
-                    left: `${(minValue / 2000) * 100}%`,
-                    width: `${((maxValue - minValue) / 2000) * 100}%`
-                  }}
-                ></div>
-                
-                {/* Min handle with increased vertical space */}
-                <input
-                  type="range"
-                  min="1"
-                  max="2000"
-                  value={minValue}
-                  onChange={handleMinChange}
-                  className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
-                  style={{ height: '28px', outline: 'none', zIndex: 3 }}
-                />
-                
-                {/* Max handle with increased vertical space */}
-                <input
-                  type="range"
-                  min="1"
-                  max="2000"
-                  value={maxValue}
-                  onChange={handleMaxChange}
-                  className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
-                  style={{ height: '28px', outline: 'none', zIndex: 2 }}
-                />
-                
-                {/* Tick marks */}
-                <div className="absolute bottom-0 w-full flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>1</span>
                   <span>500</span>
                   <span>1000</span>
@@ -145,7 +155,6 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                 </div>
               </div>
               
-              {/* Max Frequency Input and Label in a group */}
               <div className="flex items-center">
                 <input
                   type="text"
@@ -159,8 +168,6 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
               </div>
             </div>
           </div>
-          
-        
         </div>
       )}
     </div>
