@@ -99,13 +99,16 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                 <div className="relative" style={{ height: "32px" }}>
                   <div className="absolute w-full h-2 bg-gray-200 border border-gray-300 rounded-md top-1/2 transform -translate-y-1/2"></div>
                   
-                  <div 
-                    className="absolute h-2 bg-gray-500 rounded-md top-1/2 transform -translate-y-1/2"
-                    style={{
-                      left: `${(minValue / 2000) * 100}%`,
-                      width: `${((maxValue - minValue) / 2000) * 140}%`
-                    }}
-                  ></div>
+                  <div
+  className="absolute h-2 bg-gray-500 rounded-md top-1/2 -translate-y-1/2"
+  style={{
+    /* distance from left edge of the track */
+    left:  `${((minValue - 1) * 100) / 1999}%`,
+
+    /* span between the two handles */
+    width: `${((maxValue - minValue) * 100) / 1999}%`
+  }}
+/>
                   
                   <div className="relative w-full h-full flex items-center">
                     <input
