@@ -97,7 +97,7 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                 }}
               ></div>
               
-              {/* Min handle - changed pointer-events from 'none' to 'auto' */}
+              {/* Min handle - FIXED: increased z-index to be higher than max handle */}
               <input
                 type="range"
                 min="1"
@@ -105,10 +105,10 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                 value={minValue}
                 onChange={handleMinChange}
                 className={`absolute w-full appearance-none bg-transparent ${hasNoiseValidationError ? 'accent-yellow-500' : ''}`}
-                style={{ height: '20px', outline: 'none', zIndex: 1 }}
+                style={{ height: '20px', outline: 'none', zIndex: 3 }}
               />
               
-              {/* Max handle - changed pointer-events from 'none' to 'auto' */}
+              {/* Max handle - kept original z-index */}
               <input
                 type="range"
                 min="1"
