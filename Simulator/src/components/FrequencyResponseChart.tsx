@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { FrequencyResponseData, CircuitResults } from '../types';
 
 interface FrequencyResponseChartProps {
@@ -13,17 +13,54 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
   signalType
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { data, transitionFrequency, currentFrequency, error } = frequencyResponseData;
   const { wRC, noiseBandwidth } = results;
 
+  // Track container size for responsive rendering
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
   // Track rendering to avoid unnecessary redraws
   const renderCountRef = useRef<number>(0);
+
+  // Set up resize observer to handle responsive canvas
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateContainerSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        // Keep a reasonable aspect ratio
+        const height = Math.max(400, Math.min(550, rect.width * 0.6));
+        setContainerSize({ width: rect.width, height });
+      }
+    };
+
+    // Initial size calculation
+    updateContainerSize();
+
+    // Set up resize observer
+    const resizeObserver = new ResizeObserver(updateContainerSize);
+    resizeObserver.observe(containerRef.current);
+
+    // Cleanup
+    return () => {
+      if (containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Define drawing functions inside useEffect to avoid dependency issues
   useEffect(() => {
     try {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || containerSize.width === 0) return;
+
+      // Set canvas dimensions based on container size
+      canvas.width = containerSize.width;
+      canvas.height = containerSize.height;
 
       // Set up high DPI canvas for crisp rendering
       const setupHiDPICanvas = (canvas: HTMLCanvasElement) => {
@@ -87,12 +124,12 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
       // Skip rendering if data hasn't changed meaningfully
       renderCountRef.current++;
 
-      // Improved margins to prevent text cut-off
+      // Modified margins to make plot wider and closer to the edges
       const margin = {
-        top: 70,     // Increased top margin for labels above chart
-        right: 120,  // Increased right margin for impedance values
-        bottom: 80,  // Increased bottom margin for frequency labels
-        left: 120    // Increased left margin for current/phase labels
+        top: Math.max(50, height * 0.11),        // Slightly reduced top margin
+        right: Math.max(40, width * 0.05),       // Further reduced right margin
+        bottom: Math.max(60, height * 0.14),     // Keep bottom margin for frequency labels
+        left: Math.max(60, width * 0.07)         // Further reduced left margin
       };
       const plotWidth = width - margin.left - margin.right;
       const plotHeight = height - margin.top - margin.bottom;
@@ -222,12 +259,6 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
       // Draw chart frame with improved spacing
       const drawChartFrame = () => {
-        // Title
-        //ctx.fillStyle = 'black';
-        //ctx.font = 'bold 16px Arial';
-        //ctx.textAlign = 'center';
-        //ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
-        
         // X-axis
         ctx.strokeStyle = '#999';
         ctx.lineWidth = 1;
@@ -236,11 +267,11 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.lineTo(width - margin.right, height - margin.bottom);
         ctx.stroke();
 
-        // X-axis label - positioned higher to avoid overlap
+        // X-axis label - positioned at far right
         ctx.fillStyle = 'black';
         ctx.font = '14px Arial';
         ctx.textAlign = 'right';
-        ctx.fillText('Frequency (Hz)', width * 0.95, height - margin.bottom / 2 - 10);
+        ctx.fillText('Frequency (Hz)', width - margin.right, height - margin.bottom / 2 );
 
         // X-axis ticks with safety checks and improved spacing
         ctx.textAlign = 'center';
@@ -293,18 +324,18 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.lineTo(margin.left, height - margin.bottom);
         ctx.stroke();
 
-        // Move labels above the chart
+        // Move labels above the chart - placed more compactly
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
         // Current label (blue)
         ctx.fillStyle = '#0066cc';
         ctx.font = 'bold 12px Arial';
-        ctx.fillText('Current (normalized, A/Ω)', margin.left, margin.top - 40);
+        ctx.fillText('Current (normalized, A/Ω)', margin.left, margin.top - 30);
 
         // Phase angle label (purple)
         ctx.fillStyle = '#9933cc';
-        ctx.fillText('Phase Angle-φ (°)', width / 2, margin.top - 40);
+        ctx.fillText('Phase Angle-φ (°)', width / 2, margin.top - 30);
 
         // Right y-axis (Impedance)
         ctx.beginPath();
@@ -316,7 +347,7 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         ctx.fillStyle = '#cc6600';
         ctx.textAlign = 'center';
         ctx.font = 'bold 12px Arial';
-        ctx.fillText('Impedance (Ω)', width - margin.right, margin.top - 40);
+        ctx.fillText('Impedance (Ω)', width - margin.right, margin.top - 30);
 
         // Add Y-axis tick marks with better scaling
         // Left Y-axis for Current (blue)
@@ -656,49 +687,95 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         }
       };
 
-      // Draw legend in bottom left outside of chart area
+      // Modified legend to be positioned at bottom left with linear arrangement
       const drawLegend = () => {
         try {
-          // Position legend in the bottom left outside of the charting area
-          const legendX = margin.left - 100; // Adjusted for better visibility
-          const legendY = height - margin.bottom + 30;
-          const legendSpacing = 12; // Reduced spacing for more compact legend
-          const lineLength = 15; // Shorter lines
-
-          ctx.font = '11px Arial'; // Smaller font
-
-          // Impedance
+          // Position legend in the bottom left
+          const legendX = margin.left + 10;
+          const legendY = height - 30;
+          const legendSpacing = 20; // Spacing between legend items
+          const lineLength = 15; // Length of legend lines
+          
+          // Set up context for legend
+          ctx.font = '11px Arial';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          
+          // Calculate widths for dynamic positioning
+          const impedanceText = 'Impedance';
+          const currentText = 'Current';
+          const phaseText = 'Phase (φ)';
+          
+          const impedanceWidth = ctx.measureText(impedanceText).width;
+          const currentWidth = ctx.measureText(currentText).width;
+          
+          // First item - Impedance
           ctx.strokeStyle = '#cc6600';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(legendX, legendY);
           ctx.lineTo(legendX + lineLength, legendY);
           ctx.stroke();
-
+          
           ctx.fillStyle = '#cc6600';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('Impedance', legendX + lineLength + 5, legendY);
-
+          ctx.fillText(impedanceText, legendX + lineLength + 5, legendY);
+          
+          // Second item - Current (positioned to the right of Impedance)
+          const currentX = legendX + lineLength + impedanceWidth + 25;
+          
+          ctx.strokeStyle = '#0066cc';
+          ctx.beginPath();
+          ctx.moveTo(currentX, legendY);
+          ctx.lineTo(currentX + lineLength, legendY);
+          ctx.stroke();
+          
+          ctx.fillStyle = '#0066cc';
+          ctx.fillText(currentText, currentX + lineLength + 5, legendY);
+          
+          // Third item - Phase (positioned to the right of Current)
+          const phaseX = currentX + lineLength + currentWidth + 25;
+          
+          ctx.strokeStyle = '#9933cc';
+          ctx.beginPath();
+          ctx.moveTo(phaseX, legendY);
+          ctx.lineTo(phaseX + lineLength, legendY);
+          ctx.stroke();
+          
+          ctx.fillStyle = '#9933cc';
+          ctx.fillText(phaseText, phaseX + lineLength + 5, legendY);
+          
+          // Create a semi-transparent background for the legend
+          const totalWidth = phaseX + lineLength + ctx.measureText(phaseText).width + 15 - legendX;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.fillRect(legendX - 5, legendY - 10, totalWidth, 20);
+          
+          // Redraw the legend items on top of the background
+          // Impedance
+          ctx.strokeStyle = '#cc6600';
+          ctx.beginPath();
+          ctx.moveTo(legendX, legendY);
+          ctx.lineTo(legendX + lineLength, legendY);
+          ctx.stroke();
+          ctx.fillStyle = '#cc6600';
+          ctx.fillText(impedanceText, legendX + lineLength + 5, legendY);
+          
           // Current
           ctx.strokeStyle = '#0066cc';
           ctx.beginPath();
-          ctx.moveTo(legendX, legendY + legendSpacing);
-          ctx.lineTo(legendX + lineLength, legendY + legendSpacing);
+          ctx.moveTo(currentX, legendY);
+          ctx.lineTo(currentX + lineLength, legendY);
           ctx.stroke();
-
           ctx.fillStyle = '#0066cc';
-          ctx.fillText('Current', legendX + lineLength + 5, legendY + legendSpacing);
-
+          ctx.fillText(currentText, currentX + lineLength + 5, legendY);
+          
           // Phase
           ctx.strokeStyle = '#9933cc';
           ctx.beginPath();
-          ctx.moveTo(legendX, legendY + 2 * legendSpacing);
-          ctx.lineTo(legendX + lineLength, legendY + 2 * legendSpacing);
+          ctx.moveTo(phaseX, legendY);
+          ctx.lineTo(phaseX + lineLength, legendY);
           ctx.stroke();
-
           ctx.fillStyle = '#9933cc';
-          ctx.fillText('Phase Angle (φ)', legendX + lineLength + 5, legendY + 2 * legendSpacing);
+          ctx.fillText(phaseText, phaseX + lineLength + 5, legendY);
         } catch (error) {
           console.error("Error drawing legend:", error);
         }
@@ -733,7 +810,7 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
         drawLegend();
 
-        // Add note about sine wave assumptions - made more visible with background
+        // Add note about sine wave assumptions - moved to bottom right
         const noteText = 'Note: All calculations assume pure sine waves in AC steady state';
         const noteWidth = ctx.measureText(noteText).width;
 
@@ -766,12 +843,12 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
         }
       }
     };
-  }, [data, transitionFrequency, currentFrequency, wRC, error, signalType, noiseBandwidth]);
+  }, [data, transitionFrequency, currentFrequency, wRC, error, signalType, noiseBandwidth, containerSize]);
 
   // Show error state if calculations failed in sine mode
   if (signalType === 'sine' && error) {
     return (
-      <div className="mb-4">
+      <div className="mb-4" ref={containerRef}>
         <div className="border border-red-300 bg-red-50 p-4 rounded-md mb-4">
           <h3 className="text-red-700 font-medium mb-2">Chart Generation Error</h3>
           <p className="text-red-600 text-sm">{error}</p>
@@ -782,22 +859,20 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
 
         <canvas
           ref={canvasRef}
-          width="850"
-          height="550"
-          className="border border-gray-300 rounded mx-auto"
+          className="w-full border border-gray-300 rounded"
+          style={{ height: `${containerSize.height}px` }}
         />
       </div>
     );
   }
 
   return (
-    <div className="mb-4">
-      {/* Increased height for legend below chart */}
+    <div className="mb-4 w-full" ref={containerRef}>
+      {/* Responsive canvas */}
       <canvas
         ref={canvasRef}
-        width="850"
-        height="550" // Increased height to accommodate legend below chart
-        className="border border-gray-300 rounded mx-auto"
+        className="w-full border border-gray-300 rounded"
+        style={{ height: `${containerSize.height}px` }}
       />
 
       <div className="mt-2 text-sm text-left text-gray-600">
@@ -814,11 +889,6 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({
             sine wave analysis. In noise mode, the circuit responds across a band of frequencies simultaneously.
           </>
         )}
-      </div>
-
-      <div className="mt-1 text-xs text-center text-gray-500 italic">
-        Note: All calculations assume pure sine waves in AC steady state for sine mode,
-        and white noise for noise mode. Safety thresholds are valid for frequencies up to 2 kHz.
       </div>
     </div>
   );
