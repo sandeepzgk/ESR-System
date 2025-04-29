@@ -22,36 +22,64 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
   validationErrors,
   noiseValidationError
 }) => {
-  // Check which parameters have validation errors
-  const checkParamValidationState = (paramName: string): boolean => {
-    return getParamValidationState(validationErrors, paramName);
-  };
+  const hasError = (name: string) => getParamValidationState(validationErrors, name);
+  const hasNoiseError = !!noiseValidationError;
 
-  // Check if noise frequency inputs have validation errors
-  const hasNoiseValidationError = !!noiseValidationError;
-  
-  // Local state for the dual slider
-  const [minValue, setMinValue] = useState<number>(params.noiseMinFrequency.value);
-  const [maxValue, setMaxValue] = useState<number>(params.noiseMaxFrequency.value);
-  
-  // Update local state when params change
+  const [minValue, setMinValue] = useState(params.noiseMinFrequency.value);
+  const [maxValue, setMaxValue] = useState(params.noiseMaxFrequency.value);
+  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
+
   useEffect(() => {
     setMinValue(params.noiseMinFrequency.value);
     setMaxValue(params.noiseMaxFrequency.value);
   }, [params.noiseMinFrequency.value, params.noiseMaxFrequency.value]);
+
+  useEffect(() => {
+    const onUp = () => setActiveThumb(null);
+    document.addEventListener('mouseup', onUp);
+    return () => document.removeEventListener('mouseup', onUp);
+  }, []);
+
+  const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = +e.target.value;
+    if (v < maxValue) {
+      setMinValue(v);
+      onParamChange('noiseMinFrequency', { value: v });
+    }
+  };
+  const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = +e.target.value;
+    if (v > minValue) {
+      setMaxValue(v);
+      onParamChange('noiseMaxFrequency', { value: v });
+    }
+  };
   
-  // Handle min slider change
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value);
+  // Helper functions for direct mouse manipulation
+  const handleMinMouseMove = (e: MouseEvent) => {
+    const sliderContainer = document.querySelector('.relative[style*="height: 32px"]');
+    if (!sliderContainer) return;
+    
+    const rect = sliderContainer.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const percentage = Math.min(Math.max(0, offsetX / rect.width), 1);
+    const newValue = Math.round(1 + percentage * 1999);
+    
     if (newValue < maxValue) {
       setMinValue(newValue);
       onParamChange('noiseMinFrequency', { value: newValue });
     }
   };
   
-  // Handle max slider change
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value);
+  const handleMaxMouseMove = (e: MouseEvent) => {
+    const sliderContainer = document.querySelector('.relative[style*="height: 32px"]');
+    if (!sliderContainer) return;
+    
+    const rect = sliderContainer.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const percentage = Math.min(Math.max(0, offsetX / rect.width), 1);
+    const newValue = Math.round(1 + percentage * 1999);
+    
     if (newValue > minValue) {
       setMaxValue(newValue);
       onParamChange('noiseMaxFrequency', { value: newValue });
@@ -67,88 +95,90 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
           textValues={textValues}
           onParamChange={onParamChange}
           onTextChange={onTextChange}
-          hasValidationErrors={checkParamValidationState('frequency')}
+          hasValidationErrors={hasError('frequency')}
         />
       ) : (
         <div className="mb-2">
-          {hasNoiseValidationError && (
+          {hasNoiseError && (
             <div className="mb-1 p-1 bg-red-50 border border-red-300 rounded-md">
               <p className="text-red-700 text-xs">{noiseValidationError}</p>
             </div>
           )}
-          
-          <div className={`flex items-center rounded-md px-3 py-2 border border-gray-200 mb-1 bg-white`}>
-            <div className={`w-48 text-sm font-medium ${hasNoiseValidationError ? 'text-yellow-700' : 'text-gray-700'}`}>
+          <div className="flex items-center rounded-md px-3 py-2 border border-gray-200 mb-1 bg-white">
+            <div className={`w-48 text-sm font-medium ${hasNoiseError ? 'text-yellow-700' : 'text-gray-700'}`}>
               Noise Frequency Range
             </div>
-            
             <div className="flex-grow flex items-center space-x-3">
+              {/* Min input */}
               <div className="flex items-center">
                 <input
                   type="text"
                   value={textValues.noiseMinFrequency}
-                  onChange={(e) => onTextChange('noiseMinFrequency', e.target.value)}
+                  onChange={e => onTextChange('noiseMinFrequency', e.target.value)}
                   className={`w-16 px-2 py-1 text-sm border rounded ${
-                    hasNoiseValidationError ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
+                    hasNoiseError ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
                   }`}
                 />
                 <label className="text-sm ml-1 whitespace-nowrap">Min (Hz)</label>
               </div>
-              
+              {/* Slider */}
               <div className="flex-grow mx-2">
-                <div className="relative" style={{ height: "32px" }}>
-                  <div className="absolute w-full h-2 bg-gray-200 border border-gray-300 rounded-md top-1/2 transform -translate-y-1/2"></div>
-                  
+                <div className="relative" style={{ height: 32 }}>
+                  {/* Track */}
+                  <div className="absolute top-1/2 left-0 w-full h-2 bg-gray-200  border-0 border-gray-600 rounded transform -translate-y-1/2" />
+                  {/* Highlight */}
                   <div
-  className="absolute h-2 bg-gray-500 rounded-md top-1/2 -translate-y-1/2"
-  style={{
-    /* distance from left edge of the track */
-    left:  `${((minValue - 1) * 100) / 1999}%`,
-
-    /* span between the two handles */
-    width: `${((maxValue - minValue) * 100) / 1999}%`
-  }}
-/>
+                    className="absolute top-1/2 h-2 bg-gray-500 rounded transform -translate-y-1/2"
+                    style={{
+                      left: `${((minValue - 1) * 100) / 1999}%`,
+                      width: `${((maxValue - minValue) * 100) / 1999}%`
+                    }}
+                  />
                   
-                  <div className="relative w-full h-full flex items-center">
-                    <input
-                      type="range"
-                      min="1"
-                      max="2000"
-                      step="1"
-                      value={minValue}
-                      onChange={handleMinChange}
-                      className={`absolute w-1/2 appearance-none bg-transparent outline-none cursor-pointer ${
-                        hasNoiseValidationError ? 'accent-yellow-500' : ''
-                      }`}
+                  {/* This is the container for both thumbs */}
+                  <div className="absolute top-0 left-0 w-full" style={{ height: '32px' }}>
+                    {/* Min thumb handle */}
+                    <div
+                      className="absolute w-4 h-4 bg-white   bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
                       style={{
-                        left: '0',
-                        pointerEvents: 'auto',
-                        zIndex: 10,
-                        height: '100%'
+                        top: '50%',
+                        left: `${((minValue - 1) * 100) / 1999}%`,
+                        zIndex: activeThumb === 'min' ? 30 : 20,
+                        pointerEvents: 'auto'
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setActiveThumb('min');
+                        document.addEventListener('mousemove', handleMinMouseMove);
+                        document.addEventListener('mouseup', () => {
+                          setActiveThumb(null);
+                          document.removeEventListener('mousemove', handleMinMouseMove);
+                        }, { once: true });
                       }}
                     />
                     
-                    <input
-                      type="range"
-                      min="1" 
-                      max="2000"
-                      step="1"
-                      value={maxValue}
-                      onChange={handleMaxChange}
-                      className={`absolute w-1/2 appearance-none bg-transparent outline-none cursor-pointer ${
-                        hasNoiseValidationError ? 'accent-yellow-500' : ''
-                      }`}
+                    {/* Max thumb handle */}
+                    <div
+                      className="absolute w-4 h-4 bg-white  bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
                       style={{
-                        right: '0',
-                        pointerEvents: 'auto',
-                        zIndex: 20,
-                        height: '100%'
+                        top: '50%',
+                        left: `${((maxValue - 1) * 100) / 1999}%`,
+                        zIndex: activeThumb === 'max' ? 30 : 20,
+                        pointerEvents: 'auto'
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setActiveThumb('max');
+                        document.addEventListener('mousemove', handleMaxMouseMove);
+                        document.addEventListener('mouseup', () => {
+                          setActiveThumb(null);
+                          document.removeEventListener('mousemove', handleMaxMouseMove);
+                        }, { once: true });
                       }}
                     />
                   </div>
                 </div>
-                
+                {/* Ticks */}
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>1</span>
                   <span>500</span>
@@ -157,14 +187,14 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                   <span>2000</span>
                 </div>
               </div>
-              
+              {/* Max input */}
               <div className="flex items-center">
                 <input
                   type="text"
                   value={textValues.noiseMaxFrequency}
-                  onChange={(e) => onTextChange('noiseMaxFrequency', e.target.value)}
+                  onChange={e => onTextChange('noiseMaxFrequency', e.target.value)}
                   className={`w-16 px-2 py-1 text-sm border rounded ${
-                    hasNoiseValidationError ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
+                    hasNoiseError ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
                   }`}
                 />
                 <label className="text-sm ml-1 whitespace-nowrap">Max (Hz)</label>
