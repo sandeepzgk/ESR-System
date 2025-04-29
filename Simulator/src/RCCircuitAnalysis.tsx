@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ParameterState } from './types';
 import { getParamValidationState } from './utils';
 import useRCCircuit from './hooks/useRCCircuit';
@@ -13,13 +13,17 @@ import FrequencyResponseChart from './components/FrequencyResponseChart';
 import CircuitVisualizations from './components/CircuitVisualizations';
 import SafetyMeter from './components/SafetyMeter';
 import ResultsAndInterpretation from './components/ResultsAndInterpretation';
-import { RefreshCw } from 'lucide-react';
+import MathematicalModelModal from './components/MathematicalModelModal';
+import { RefreshCw, BookOpen } from 'lucide-react';
 
 interface RCCircuitAnalysisProps {
   initialParams?: Partial<ParameterState>;
 }
 
 const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {} }) => {
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const {
     params,
     textValues,
@@ -42,8 +46,23 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
   return (
     <ErrorBoundary>
       {/* Removed max-w-screen-2xl to use full screen width */}
-      <div className="p-4 w-full mx-auto bg-gray-50">
+      <div className="p-4 w-full mx-auto bg-gray-50 relative">
         <h1 className="text-2xl font-bold mb-4">AC Parallel RC Circuit Analysis</h1>
+        
+        {/* Floating Mathematical Model Button */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700"
+        >
+          <BookOpen size={18} />
+          <span>Mathematical Model</span>
+        </button>
+
+        {/* Mathematical Model Modal */}
+        <MathematicalModelModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
 
         {/* Error Displays */}
         <div className="mb-4">
@@ -298,65 +317,12 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
             </div>
           </div>
           
-          {/* Bottom Row: Analysis Interpretation */}
+          {/* Bottom Row: Analysis Interpretation - Keep insights in place */}
           <div className="col-span-12 bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold mb-4">Circuit Analysis Interpretation</h2>
             
-            <div className="grid grid-cols-3 gap-4">
-              {/* Mathematical Models */}
-              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-blue-200">
-                <h3 className="font-medium mb-3">Mathematical Models</h3>
-                
-                <div className={`p-3 rounded border mb-2 ${
-                  params.signalType === 'sine' 
-                    ? 'bg-blue-50 border-blue-300' 
-                    : 'border-gray-300'
-                }`}>
-                  <h4 className="font-medium mb-2 text-blue-800">Sine Wave Model:</h4>
-                  <p>I<sub>total</sub> = √(I<sub>R</sub><sup>2</sup> + I<sub>C</sub><sup>2</sup>)</p>
-                  <p>I<sub>R</sub> = V<sub>rms</sub>/R</p>
-                  <p>I<sub>C</sub> = V<sub>rms</sub>·2πfC</p>
-                  <p className="mt-2 text-sm">ωRC = 2πfRC determines circuit behavior</p>
-                </div>
-                
-                <div className={`p-3 rounded border ${
-                  params.signalType === 'noise' 
-                    ? 'bg-blue-50 border-blue-300' 
-                    : 'border-gray-300'
-                }`}>
-                  <h4 className="font-medium mb-2 text-blue-800">White Noise Model:</h4>
-                  <p>I<sub>total,RMS</sub> = √(I<sub>R,RMS</sub><sup>2</sup> + I<sub>C,RMS</sub><sup>2</sup>)</p>
-                  <p>I<sub>C,RMS</sub> = V<sub>RMS</sub>·2πC·√[(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>)/(3·(f<sub>max</sub> - f<sub>min</sub>))]</p>
-                </div>
-              </div>
-              
-              {/* Removed Regime Analysis from here as it's now under Analysis Results */}
-              
-              {/* Human Body Application */}
-              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-200">
-                <h3 className="font-medium mb-3">Human Body Application</h3>
-                <ul className="list-disc pl-5">
-                  <li><strong>Typical human body circuit:</strong> Resistive dominated (ωRC range of 0.001-0.2)</li>
-                  <li><strong>Current level:</strong> {results.isSafe ? 
-                    <span className="text-green-600">Safe</span> : 
-                    <span className="text-red-600 font-bold">UNSAFE</span>}
-                  </li>
-                  <li><strong>Recommendation:</strong> {
-                    results.isSafe
-                      ? "Parameters are within safe operating range"
-                      : "Reduce voltage or increase resistance to ensure safety"
-                  }</li>
-                </ul>
-                
-                <div className="mt-4 p-2 bg-blue-50 rounded text-sm">
-                  <strong>Safety Note:</strong> Thresholds are frequency-dependent. This model is valid up to 2 kHz.
-                  At higher frequencies, human sensitivity to electrical current changes significantly.
-                </div>
-              </div>
-            </div>
-            
-            {/* Additional insights section optimized for wide display */}
-            <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
+              {/* Additional insights section */}
               <div className={`p-3 rounded border ${params.signalType === 'sine' ? 'bg-blue-50' : 'bg-gray-50'}`}>
                 {params.signalType === 'sine' ? (
                   <>
@@ -374,16 +340,12 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                     <h4 className="font-medium mb-2">White Noise Insights</h4>
                     <p>Unlike sine waves at a single frequency, white noise contains energy across
                     the entire frequency spectrum with a flat power spectral density.</p>
+                    <p className="mt-2">
+                      Higher frequencies in the noise band contribute more to capacitive current due to
+                      the frequency-dependent nature of capacitive reactance (X<sub>C</sub> = 1/(2πfC)).
+                    </p>
                   </>
                 )}
-              </div>
-              
-              <div className="p-3 rounded border bg-gray-50">
-                <h4 className="font-medium mb-2">Safety Considerations</h4>
-                <p>The human body is primarily resistive at low frequencies, but capacitive 
-                elements become more significant at higher frequencies. AC current as low as 5-10 mA 
-                can cause muscle contraction, while 100 mA can be lethal.</p>
-                <p className="mt-2">Current threshold selected: {results.values.safeCurrentThreshold.toFixed(1)} μA</p>
               </div>
             </div>
           </div>
