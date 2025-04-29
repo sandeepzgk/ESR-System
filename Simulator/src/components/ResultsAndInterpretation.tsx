@@ -5,9 +5,14 @@ import { formatValue } from '../utils';
 interface ResultsAndInterpretationProps {
   results: CircuitResults;
   determineRegime: () => string;
+  signalType: 'sine' | 'noise';
 }
 
-const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ results, determineRegime }) => {
+const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ 
+  results, 
+  determineRegime,
+  signalType
+}) => {
   const {
     wRC,
     currentR,
@@ -19,15 +24,21 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ res
     capacitivePercent,
     isSafe,
     values,
-    calculationError
+    calculationError,
+    noiseValidationError,
+    noiseBandwidth
   } = results;
 
   // Default safeThreshold if values is undefined
   const safeThreshold = values ? values.safeCurrentThreshold : 500e-6; // Default to 500μA
 
-  // Check for invalid results
-  const hasValidResults = isFinite(wRC) && isFinite(currentR) && isFinite(currentC) &&
-    isFinite(currentTotal) && isFinite(phaseAngle) && isFinite(powerFactor);
+  // Check for invalid results based on signal type
+  const hasValidResults = signalType === 'sine'
+    ? isFinite(wRC as number) && isFinite(phaseAngle as number) && 
+      isFinite(powerFactor as number) && isFinite(currentR) && 
+      isFinite(currentC) && isFinite(currentTotal) && !noiseValidationError
+    : isFinite(currentR) && isFinite(currentC) && isFinite(currentTotal) && 
+      noiseBandwidth && !noiseValidationError;
 
   if (!hasValidResults || calculationError) {
     return (
@@ -41,12 +52,38 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ res
             Error: {calculationError}
           </p>
         )}
+        {noiseValidationError && (
+          <p className="text-orange-700 text-sm font-mono p-2 bg-orange-100 rounded">
+            Noise Error: {noiseValidationError}
+          </p>
+        )}
         <p className="text-red-600 mt-2">
           Please adjust parameters to physically reasonable values.
         </p>
       </div>
     );
   }
+
+  // Calculate effective ωRC for noise mode (at central frequency)
+  const calculateEffectiveWRC = () => {
+    if (!noiseBandwidth) return null;
+    
+    const centerFreq = (noiseBandwidth.min + noiseBandwidth.max) / 2;
+    if (!values) return null;
+    
+    const effectiveWRC = 2 * Math.PI * centerFreq * values.resistance * values.capacitance;
+    return effectiveWRC;
+  };
+  
+  // Determine regime for noise mode based on center frequency
+  const determineNoiseRegime = () => {
+    const effectiveWRC = calculateEffectiveWRC();
+    if (!effectiveWRC) return "Indeterminate";
+    
+    if (effectiveWRC < 1) return "Predominantly Resistive";
+    if (effectiveWRC > 1) return "Predominantly Capacitive";
+    return "Transition Region";
+  };
 
   return (
     <>
@@ -62,11 +99,44 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ res
             </tr>
           </thead>
           <tbody>
-            <tr className="border-t">
-              <td className="p-2">Normalized ωRC</td>
-              <td className="p-2">{wRC.toFixed(4)}</td>
-              <td className="p-2">{determineRegime()} regime</td>
-            </tr>
+            {/* Sine-mode specific rows */}
+            {signalType === 'sine' && (
+              <>
+                <tr className="border-t">
+                  <td className="p-2">Normalized ωRC</td>
+                  <td className="p-2">{(wRC as number).toFixed(4)}</td>
+                  <td className="p-2">{determineRegime()} regime</td>
+                </tr>
+                <tr className="border-t">
+                  <td className="p-2">Phase Angle</td>
+                  <td className="p-2">{(phaseAngle as number).toFixed(2)}°</td>
+                  <td className="p-2">{(phaseAngle as number) < 45 ? "Low phase shift" : "High phase shift"}</td>
+                </tr>
+                <tr className="border-t">
+                  <td className="p-2">Power Factor</td>
+                  <td className="p-2">{(powerFactor as number).toFixed(4)}</td>
+                  <td className="p-2">{(powerFactor as number) > 0.7 ? "Efficient power transfer" : "Poor power transfer"}</td>
+                </tr>
+              </>
+            )}
+
+            {/* Noise-mode specific rows */}
+            {signalType === 'noise' && noiseBandwidth && (
+              <>
+                <tr className="border-t">
+                  <td className="p-2">Noise Bandwidth</td>
+                  <td className="p-2">{noiseBandwidth.min.toFixed(1)} Hz - {noiseBandwidth.max.toFixed(1)} Hz</td>
+                  <td className="p-2">Range: {(noiseBandwidth.max - noiseBandwidth.min).toFixed(1)} Hz</td>
+                </tr>
+                <tr className="border-t">
+                  <td className="p-2">Effective ωRC (at center freq)</td>
+                  <td className="p-2">{calculateEffectiveWRC()?.toFixed(4) || "--"}</td>
+                  <td className="p-2">{determineNoiseRegime()}</td>
+                </tr>
+              </>
+            )}
+
+            {/* Common rows for both modes */}
             <tr className="border-t">
               <td className="p-2">Resistive Current</td>
               <td className="p-2">{formatValue(currentR, 'A')}</td>
@@ -86,21 +156,13 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ res
                 </span>
               </td>
             </tr>
-            <tr className="border-t">
-              <td className="p-2">Phase Angle</td>
-              <td className="p-2">{phaseAngle.toFixed(2)}°</td>
-              <td className="p-2">{phaseAngle < 45 ? "Low phase shift" : "High phase shift"}</td>
-            </tr>
-            <tr className="border-t">
-              <td className="p-2">Power Factor</td>
-              <td className="p-2">{powerFactor.toFixed(4)}</td>
-              <td className="p-2">{powerFactor > 0.7 ? "Efficient power transfer" : "Poor power transfer"}</td>
-            </tr>
           </tbody>
         </table>
 
         <div className="mt-2 text-xs text-gray-500 italic">
-          Note: All calculations assume pure sine waves in AC steady state.
+          {signalType === 'sine'
+            ? "Note: All calculations assume pure sine waves in AC steady state."
+            : "Note: White noise calculations assume flat power spectral density across the specified band."}
         </div>
       </div>
 
@@ -109,36 +171,116 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ res
         <h2 className="text-lg font-semibold mb-4">Circuit Analysis Interpretation</h2>
 
         <div className="flex flex-col space-y-4">
-          {/* First row - side by side boxes */}
-          <div className="flex space-x-4">
-            <div className="bg-white p-4 rounded shadow flex-1 border-l-4 border-blue-200">
-              <h3 className="font-medium mb-2">Mathematical Model:</h3>
-              <p>I<sub>total</sub> = I<sub>R</sub> + I<sub>C</sub> = V<sub>rms</sub>/R + V<sub>rms</sub>·2πfC</p>
-              <p>V<sub>rms</sub> = V<sub>pk-pk</sub>/(2√2) for sine waves</p>
-              <p>The dimensionless parameter <span className="font-semibold">ωRC = {wRC.toFixed(2)}</span> determines circuit regime</p>
+          {/* Mathematical Models Row - Side by side comparison of both models - FIXED STYLING */}
+          <div className="bg-white p-4 rounded shadow border-l-4 border-blue-200">
+            <h3 className="font-medium mb-4">Mathematical Models Comparison:</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Sine Wave Model - Always bordered, highlighted when active */}
+              <div className={`p-3 rounded border ${
+                signalType === 'sine' 
+                  ? 'bg-blue-50 border-blue-300' 
+                  : 'border-gray-300 hover:border-blue-200'
+              }`}>
+                <h4 className="font-medium mb-2 text-blue-800">Sine Wave Model:</h4>
+                <p>I<sub>total</sub> = √(I<sub>R</sub><sup>2</sup> + I<sub>C</sub><sup>2</sup>)</p>
+                <p>I<sub>R</sub> = V<sub>rms</sub>/R</p>
+                <p>I<sub>C</sub> = V<sub>rms</sub>·2πfC</p>
+                <p>V<sub>rms</sub> = V<sub>pk-pk</sub>/(2√2) for sine waves</p>
+                <p className="mt-2">The dimensionless parameter <span className="font-semibold">ωRC = 2πfRC</span> determines circuit behavior</p>
+                <p className="text-sm text-gray-600 italic mt-2">Current parameters: {signalType === 'sine' ? `ωRC = ${(wRC as number).toFixed(4)}` : 'Not in sine mode'}</p>
+              </div>
+              
+              {/* White Noise Model - Always bordered, highlighted when active */}
+              <div className={`p-3 rounded border ${
+                signalType === 'noise' 
+                  ? 'bg-blue-50 border-blue-300' 
+                  : 'border-gray-300 hover:border-blue-200'
+              }`}>
+                <h4 className="font-medium mb-2 text-blue-800">White Noise Model:</h4>
+                <p>I<sub>total,RMS</sub> = √(I<sub>R,RMS</sub><sup>2</sup> + I<sub>C,RMS</sub><sup>2</sup>)</p>
+                <p>I<sub>R,RMS</sub> = V<sub>RMS</sub>/R</p>
+                <p>I<sub>C,RMS</sub> = V<sub>RMS</sub>·2πC·√[(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>)/(3·(f<sub>max</sub> - f<sub>min</sub>))]</p>
+                <p className="mt-2">White noise has equal power across all frequencies (uniform power spectral density)</p>
+                <p className="text-sm text-gray-600 italic mt-2">Current bandwidth: {signalType === 'noise' && noiseBandwidth ? `${noiseBandwidth.min} Hz - ${noiseBandwidth.max} Hz` : 'Not in noise mode'}</p>
+              </div>
             </div>
+          </div>
 
+          {/* Regime Analysis Row */}
+          <div className="flex space-x-4">
             <div className="bg-white p-4 rounded shadow flex-1 border-l-4 border-green-200">
               <h3 className="font-medium mb-2">Regime Analysis:</h3>
               <ul className="list-disc pl-5">
                 <p className="mb-2">The ωRC value determines circuit behavior:</p>
                 <div className="grid grid-cols-3 gap-2 mb-2 text-sm">
-                  <div className={`p-1 rounded text-center ${determineRegime() === "Resistive" ? "bg-blue-200 font-bold" : "bg-blue-50"}`}>
+                  <div className={`p-1 rounded text-center ${
+                    (signalType === 'sine' && determineRegime() === "Resistive") || 
+                    (signalType === 'noise' && determineNoiseRegime() === "Predominantly Resistive")
+                    ? "bg-blue-200 font-bold" : "bg-blue-50"
+                  }`}>
                     ωRC &lt; 1: Resistive
                   </div>
-                  <div className={`p-1 rounded text-center ${determineRegime() === "Transition Point" ? "bg-purple-200 font-bold" : "bg-purple-50"}`}>
+                  <div className={`p-1 rounded text-center ${
+                    (signalType === 'sine' && determineRegime() === "Transition Point") || 
+                    (signalType === 'noise' && determineNoiseRegime() === "Transition Region")
+                    ? "bg-purple-200 font-bold" : "bg-purple-50"
+                  }`}>
                     ωRC = 1: Transition
                   </div>
-                  <div className={`p-1 rounded text-center ${determineRegime() === "Capacitive" ? "bg-green-200 font-bold" : "bg-green-50"}`}>
+                  <div className={`p-1 rounded text-center ${
+                    (signalType === 'sine' && determineRegime() === "Capacitive") || 
+                    (signalType === 'noise' && determineNoiseRegime() === "Predominantly Capacitive")
+                    ? "bg-green-200 font-bold" : "bg-green-50"
+                  }`}>
                     ωRC &gt; 1: Capacitive
                   </div>
                 </div>
-                <p className="font-medium">Current: {determineRegime()} mode with ωRC = {wRC.toFixed(2)}</p>
+                <p className="font-medium">
+                  {signalType === 'sine' 
+                    ? `Current: ${determineRegime()} mode with ωRC = ${(wRC as number).toFixed(2)}`
+                    : `Current: ${determineNoiseRegime()} with effective ωRC ≈ ${calculateEffectiveWRC()?.toFixed(2) || "--"} at center frequency`
+                  }
+                </p>
               </ul>
+            </div>
+            
+            {/* Alternative analysis box - styled with border for inactive state */}
+            <div className="bg-white p-4 rounded shadow flex-1 border-l-4 border-purple-200">
+              {signalType === 'noise' ? (
+                <>
+                  <h3 className="font-medium mb-2">White Noise Analysis:</h3>
+                  <div>
+                    <p className="mb-2">White noise properties in RC circuits:</p>
+                    <ul className="list-disc pl-5 mb-2 text-sm">
+                      <li>Gaussian amplitude distribution with zero mean</li>
+                      <li>Constant power spectral density across all frequencies</li>
+                      <li>Higher frequencies contribute more to capacitive current due to decreasing impedance (X<sub>C</sub> = 1/(2πfC))</li>
+                      <li>Bandwidth and center frequency significantly affect current distribution</li>
+                    </ul>
+                    <p className="font-medium mt-2">Current noise bandwidth: {noiseBandwidth?.min.toFixed(1)} Hz to {noiseBandwidth?.max.toFixed(1)} Hz</p>
+                    <p className="text-sm text-gray-600 mt-1">Center frequency: {((noiseBandwidth?.min || 0) + (noiseBandwidth?.max || 0))/2} Hz</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="font-medium mb-2">Sine Wave Analysis:</h3>
+                  <div>
+                    <p className="mb-2">Sine wave characteristics in RC circuits:</p>
+                    <ul className="list-disc pl-5 mb-2 text-sm">
+                      <li>Predictable phase relationship between voltage and current</li>
+                      <li>Phase angle: {(phaseAngle as number).toFixed(2)}° ({(phaseAngle as number) < 45 ? "Resistance dominated" : "Capacitance dominated"})</li>
+                      <li>Power factor: {(powerFactor as number).toFixed(4)} ({(powerFactor as number) > 0.7 ? "Efficient power transfer" : "Poor power transfer"})</li>
+                      <li>Single frequency response at f = {values?.frequency.toFixed(1)} Hz</li>
+                    </ul>
+                    <p className="font-medium mt-2">Operating point: ωRC = {(wRC as number).toFixed(4)} ({determineRegime()} regime)</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Second row - single box */}
+          {/* Human Body Application Row */}
           <div className="bg-white p-4 rounded shadow border-l-4 border-purple-200">
             <h3 className="font-medium mb-2">Human Body Application:</h3>
             <ul className="list-disc pl-5">
@@ -150,6 +292,9 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({ res
                   ? "Parameters are within safe operating range"
                   : "Reduce voltage or increase resistance to ensure safety"
               }</li>
+              {signalType === 'noise' && (
+                <li><strong>Note:</strong> With white noise signals, the human body response varies across the frequency band, with higher sensitivity to certain frequencies</li>
+              )}
             </ul>
 
             <p className="mt-3 text-sm text-gray-600 italic">

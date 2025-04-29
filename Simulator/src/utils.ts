@@ -34,12 +34,23 @@ export const formatValueScientific = (value: number, unit: string): string => {
 
 // Validates if parameters make physical sense together
 export const validateCircuitParameters = (normalizedValues: NormalizedValues): CircuitParametersValidation => {
-  const { voltage, resistance, capacitance, frequency } = normalizedValues;
+  const { voltage, resistance, capacitance, frequency, noiseMinFrequency, noiseMaxFrequency } = normalizedValues;
   const errors: string[] = [];
 
   // Check individual parameters against physical limits
   if (frequency < physicalLimits.minFrequency || frequency > physicalLimits.maxFrequency) {
     errors.push(`Frequency (${formatValueScientific(frequency, 'Hz')}) is outside physical limits`);
+  }
+
+  // Check noise frequencies if they're present
+  if (noiseMinFrequency !== undefined && noiseMaxFrequency !== undefined) {
+    if (noiseMinFrequency < physicalLimits.minNoiseFrequencyLimit) {
+      errors.push(`Min noise frequency (${formatValueScientific(noiseMinFrequency, 'Hz')}) must be at least ${physicalLimits.minNoiseFrequencyLimit} Hz`);
+    }
+    
+    if (noiseMaxFrequency > physicalLimits.maxNoiseFrequencyLimit) {
+      errors.push(`Max noise frequency (${formatValueScientific(noiseMaxFrequency, 'Hz')}) must be at most ${physicalLimits.maxNoiseFrequencyLimit} Hz`);
+    }
   }
 
   if (resistance < physicalLimits.minResistance || resistance > physicalLimits.maxResistance) {
@@ -54,7 +65,7 @@ export const validateCircuitParameters = (normalizedValues: NormalizedValues): C
     errors.push(`Voltage (${formatValueScientific(voltage, 'V')}) is outside physical limits`);
   }
 
-  // Check parameter interactions
+  // Check parameter interactions for sine wave mode
   // wRC value extremely low or high indicates potential issues
   const omega = 2 * Math.PI * frequency;
   const wRC = omega * resistance * capacitance;

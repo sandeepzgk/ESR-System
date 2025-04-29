@@ -26,7 +26,8 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
     return null;
   }
 
-  const { value, unit } = params[paramName];
+  const param = params[paramName] as ParameterWithUnit;
+  const { value, unit } = param;
   const textValue = textValues[paramName];
 
   // Handle case where unit system might not be defined yet
@@ -35,11 +36,20 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
 
   // Generate user-friendly label from paramName
   const getLabel = () => {
-    if (paramName === 'safeCurrentThreshold') return  <>Safe Current Threshold — <b>I<sub>body</sub></b></>;
-    if (paramName === 'voltage') return <>Voltage — <b>V<sub>pk-pk</sub></b></>;
+    const signalType = params.signalType;
+    
+    if (paramName === 'safeCurrentThreshold') return <>Safe Current Threshold — <b>I<sub>body</sub></b></>;
+    if (paramName === 'voltage') {
+      return signalType === 'sine' 
+        ? <>Voltage (Peak-to-Peak) — <b>V<sub>pp</sub></b></>
+        : <>Voltage (RMS) — <b>V<sub>RMS</sub></b></>;
+    }
     if (paramName === 'resistance') return <>Resistance — <b>R<sub>body</sub></b></>;
     if (paramName === 'capacitance') return <>Capacitance — <b>C<sub>body</sub></b></>;
     if (paramName === 'frequency') return <>Frequency — <b>F<sub>signal</sub></b></>;
+    if (paramName === 'noiseMinFrequency') return <>Min Frequency — <b>F<sub>min</sub></b></>;
+    if (paramName === 'noiseMaxFrequency') return <>Max Frequency — <b>F<sub>max</sub></b></>;
+    
     return paramName.charAt(0).toUpperCase() + paramName.slice(1);
   };
 
@@ -69,14 +79,16 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
             type="text"
             value={textValue}
             onChange={(e) => onTextChange(paramName, e.target.value)}
-            className={`w-24 px-2 py-1 border rounded-l-md text-right ${hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
-              }`}
+            className={`w-24 px-2 py-1 border rounded-l-md text-right ${
+              hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
+            }`}
           />
           <select
             value={unit}
             onChange={(e) => onParamChange(paramName, { unit: e.target.value })}
-            className={`w-24 border rounded-r-md text-sm ${hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300 bg-gray-50'
-              }`}
+            className={`w-24 border rounded-r-md text-sm ${
+              hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300 bg-gray-50'
+            }`}
           >
             {system.units.map(u => (
               <option key={u} value={u}>{u}</option>

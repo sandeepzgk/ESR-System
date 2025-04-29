@@ -4,12 +4,17 @@ import { FrequencyResponseData, CircuitResults } from '../types';
 interface FrequencyResponseChartProps {
   frequencyResponseData: FrequencyResponseData;
   results: CircuitResults;
+  signalType: 'sine' | 'noise';
 }
 
-const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequencyResponseData, results }) => {
+const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ 
+  frequencyResponseData, 
+  results, 
+  signalType 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { data, transitionFrequency, currentFrequency, error } = frequencyResponseData;
-  const { wRC } = results;
+  const { wRC, noiseBandwidth } = results;
 
   // Track rendering to avoid unnecessary redraws
   const renderCountRef = useRef<number>(0);
@@ -18,7 +23,34 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequen
   useEffect(() => {
     try {
       const canvas = canvasRef.current;
-      if (!canvas || !data || data.length === 0) return;
+      if (!canvas) return;
+
+      // Skip rendering if in noise mode - not applicable
+      if (signalType === 'noise') {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Display message explaining chart is not available in noise mode
+        ctx.fillStyle = '#666';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Frequency response chart not available in noise mode', canvas.width / 2, canvas.height / 2 - 20);
+        
+        ctx.font = '14px Arial';
+        ctx.fillText('This visualization applies only to single-frequency sine wave analysis', canvas.width / 2, canvas.height / 2 + 10);
+        
+        if (noiseBandwidth) {
+          ctx.fillStyle = '#0066cc';
+          ctx.fillText(`Current noise bandwidth: ${noiseBandwidth.min} Hz to ${noiseBandwidth.max} Hz`, canvas.width / 2, canvas.height / 2 + 40);
+        }
+        
+        return;
+      }
+
+      if (!data || data.length === 0) return;
 
       // Skip rendering if data hasn't changed meaningfully
       renderCountRef.current++;
@@ -45,6 +77,23 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequen
       const drawGrid = () => {
         ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
         ctx.lineWidth = 0.5;
+        
+        // Draw grid only if we have valid data
+        if (!data || data.length === 0) return;
+        
+        const validFrequencies = data.map(d => d.frequency).filter(f => isFinite(f) && f > 0);
+        if (validFrequencies.length === 0) return;
+        
+        const minFreq = Math.min(...validFrequencies);
+        const maxFreq = Math.max(...validFrequencies);
+        
+        // Protect against zero or infinity
+        if (minFreq <= 0 || !isFinite(minFreq) || maxFreq <= 0 || !isFinite(maxFreq) || minFreq === maxFreq) {
+          return;
+        }
+        
+        const logMin = Math.log10(minFreq);
+        const logMax = Math.log10(maxFreq);
         
         // Vertical grid lines (logarithmic for frequency)
         for (let i = Math.ceil(logMin); i <= Math.floor(logMax); i++) {
@@ -152,12 +201,6 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequen
 
       // Draw chart frame with improved spacing
       const drawChartFrame = () => {
-        // Title
-        //ctx.fillStyle = 'black';
-        //ctx.font = 'bold 16px Arial';
-        //ctx.textAlign = 'center';
-        //ctx.fillText('Frequency Response Curves', width / 2, margin.top / 2);
-
         // X-axis
         ctx.strokeStyle = '#999';
         ctx.lineWidth = 1;
@@ -602,16 +645,6 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequen
 
           ctx.font = '11px Arial'; // Smaller font
           
-          // Create a more compact legend layout
-          // Background for legend with rounded corners
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.beginPath();
-         
-          
-          ctx.strokeStyle = '#ccc';
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-
           // Impedance
           ctx.strokeStyle = '#cc6600';
           ctx.lineWidth = 2;
@@ -709,10 +742,10 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequen
         }
       }
     };
-  }, [data, transitionFrequency, currentFrequency, wRC, error]);
+  }, [data, transitionFrequency, currentFrequency, wRC, error, signalType, noiseBandwidth]);
 
-  // Show error state if calculations failed
-  if (error) {
+  // Show error state if calculations failed in sine mode
+  if (signalType === 'sine' && error) {
     return (
       <div className="mb-4">
         <div className="border border-red-300 bg-red-50 p-4 rounded-md mb-4">
@@ -744,15 +777,24 @@ const FrequencyResponseChart: React.FC<FrequencyResponseChartProps> = ({ frequen
       />
 
       <div className="mt-2 text-sm text-left text-gray-600">
-        This graph shows how the circuit responds across a frequency range. The blue line shows current,
-        the orange line shows impedance, and the purple line shows phase angle. The vertical red line marks
-        the transition point (ωRC = 1) between resistive and capacitive regimes.
-        The current operating point is marked with colored dots on each curve.
+        {signalType === 'sine' ? (
+          <>
+            This graph shows how the circuit responds across a frequency range. The blue line shows current,
+            the orange line shows impedance, and the purple line shows phase angle. The vertical red line marks
+            the transition point (ωRC = 1) between resistive and capacitive regimes.
+            The current operating point is marked with colored dots on each curve.
+          </>
+        ) : (
+          <>
+            Frequency response chart is not available in noise mode since it applies only to single-frequency
+            sine wave analysis. In noise mode, the circuit responds across a band of frequencies simultaneously.
+          </>
+        )}
       </div>
 
       <div className="mt-1 text-xs text-center text-gray-500 italic">
-        Note: All calculations assume pure sine waves in AC steady state.
-        Safety thresholds are valid for frequencies up to 2 kHz.
+        Note: All calculations assume pure sine waves in AC steady state for sine mode, 
+        and white noise for noise mode. Safety thresholds are valid for frequencies up to 2 kHz.
       </div>
     </div>
   );

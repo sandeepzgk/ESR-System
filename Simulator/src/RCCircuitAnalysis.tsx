@@ -5,7 +5,10 @@ import useRCCircuit from './hooks/useRCCircuit';
 import ErrorBoundary from './components/ErrorBoundary';
 import ValidationErrors from './components/ValidationErrors';
 import CalculationError from './components/CalculationError';
+import NoiseValidationError from './components/NoiseValidationError';
 import ParameterControl from './components/ParameterControl';
+import FrequencyInputs from './components/FrequencyInputs';
+import SignalTypeSelector from './components/SignalTypeSelector';
 import FrequencyResponseChart from './components/FrequencyResponseChart';
 import CircuitVisualizations from './components/CircuitVisualizations';
 import SafetyMeter from './components/SafetyMeter';
@@ -25,6 +28,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
     updateParameter,
     handleTextChange,
     resetCircuit,
+    toggleSignalType,
     validationErrors,
     hasCalculationError
   } = useRCCircuit(initialParams);
@@ -50,6 +54,10 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
           onReset={resetCircuit}
         />
 
+        <NoiseValidationError
+          error={results.noiseValidationError}
+          onReset={resetCircuit}
+        />
         
         <div className="bg-gray-100 p-4 rounded-lg mb-6">
           <div className="flex justify-between items-center mb-2">
@@ -62,33 +70,74 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
             </button>
           </div>
           
+          {/* Signal Type Selector */}
+          <SignalTypeSelector 
+            signalType={params.signalType} 
+            onToggle={toggleSignalType} 
+          />
+          
           <div className="flex flex-col md:flex-row">
             <div className="flex-grow">
-              {['voltage', 'resistance', 'capacitance', 'frequency'].map(paramName => (
-                <ParameterControl
-                  key={paramName}
-                  paramName={paramName}
-                  params={params}
-                  textValues={textValues}
-                  onParamChange={updateParameter}
-                  onTextChange={handleTextChange}
-                  hasValidationErrors={checkParamValidationState(paramName)}
-                />
-              ))}
+              {/* Resistance and Capacitance Controls */}
+              <ParameterControl
+                paramName="resistance"
+                params={params}
+                textValues={textValues}
+                onParamChange={updateParameter}
+                onTextChange={handleTextChange}
+                hasValidationErrors={checkParamValidationState('resistance')}
+              />
+              
+              <ParameterControl
+                paramName="capacitance"
+                params={params}
+                textValues={textValues}
+                onParamChange={updateParameter}
+                onTextChange={handleTextChange}
+                hasValidationErrors={checkParamValidationState('capacitance')}
+              />
+              
+              {/* Voltage Input - label changes based on signal type */}
+              <ParameterControl
+                paramName="voltage"
+                params={params}
+                textValues={textValues}
+                onParamChange={updateParameter}
+                onTextChange={handleTextChange}
+                hasValidationErrors={checkParamValidationState('voltage')}
+              />
+              
+              {/* Frequency Inputs - conditional based on signal type */}
+              <FrequencyInputs
+                signalType={params.signalType}
+                params={params}
+                textValues={textValues}
+                onParamChange={updateParameter}
+                onTextChange={handleTextChange}
+                validationErrors={validationErrors}
+                noiseValidationError={results.noiseValidationError}
+              />
             </div>
           </div>
 
           <div className="mt-2 text-xs text-gray-500 italic">
-            Note: All calculations assume pure sine waves in AC steady state.
+            {params.signalType === 'sine'
+              ? "Note: Sine mode calculations assume pure sine waves in AC steady state."
+              : "Note: Noise mode calculations assume white noise across the specified frequency band."}
           </div>
         </div>
 
         {/* Frequency Response Analysis */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-semibold mb-4">Frequency Response Analysis</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            {params.signalType === 'sine' 
+              ? "Frequency Response Analysis" 
+              : "Frequency Response (Noise Mode)"}
+          </h2>
           <FrequencyResponseChart
             frequencyResponseData={frequencyResponseData}
             results={results}
+            signalType={params.signalType}
           />
         </div>
 
@@ -97,6 +146,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
           <CircuitVisualizations
             results={results}
             determineRegime={determineRegime}
+            signalType={params.signalType}
           />
         </div>
 
@@ -130,6 +180,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
         <ResultsAndInterpretation
           results={results}
           determineRegime={determineRegime}
+          signalType={params.signalType}
         />
       </div>
     </ErrorBoundary>
