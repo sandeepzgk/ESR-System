@@ -15,13 +15,13 @@ import { validateCircuitParameters } from '../utils';
 const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
   // Default parameters with units - wrapped in useMemo to avoid dependency issues
   const defaultParams = useMemo<ParameterState>(() => ({
-    voltage: { value: 1, unit: 'V' },
-    resistance: { value: 5, unit: 'kΩ' },
-    capacitance: { value: 50, unit: 'nF' },
-    frequency: { value: 1000, unit: 'Hz' },
-    noiseMinFrequency: { value: 100, unit: 'Hz' },
-    noiseMaxFrequency: { value: 1000, unit: 'Hz' },
-    safeCurrentThreshold: { value: 500, unit: 'μA' },
+    voltage: { value: 1, unit: 'V' },          // Changed from 1V to 5V for more noticeable haptic feedback
+    resistance: { value: 50, unit: 'kΩ' },      // Keep as is - matches typical body resistance
+    capacitance: { value: 50, unit: 'nF' },   // Changed from 50nF to 150pF to match human body capacitance
+    frequency: { value: 50, unit: 'Hz' },      // Changed from 1000Hz to 50Hz for optimal haptic perception
+    noiseMinFrequency: { value: 20, unit: 'Hz' }, // Changed from 100Hz to 20Hz for better haptic range
+    noiseMaxFrequency: { value: 1990, unit: 'Hz' }, // Changed from 1000Hz to 100Hz to stay in resistive regime
+    safeCurrentThreshold: { value: 500, unit: 'μA' }, // Keep as is - already at safe threshold
     signalType: 'sine'
   }), []);
 
@@ -284,7 +284,7 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
         error: 'Frequency response not applicable for noise mode'
       };
     }
-  
+
     const points = 100;
     const freqData: FrequencyDataPoint[] = [];
     try {
@@ -296,42 +296,42 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
         console.warn('Missing normalized values for frequency response calculation');
         return { data: [], transitionFrequency: 0, currentFrequency: 0, error: 'Invalid parameters' };
       }
-  
+
       // Protect against extreme values that could cause numerical issues
       const normalizedFreq = Math.max(0.001, Math.min(1e6, normalizedValues.frequency));
       const normalizedRes = Math.max(0.001, Math.min(1e12, normalizedValues.resistance));
       const normalizedCap = Math.max(1e-15, Math.min(1, normalizedValues.capacitance));
-  
+
       // Safe logarithmic range calculation
       const minFreq = Math.max(0.001, normalizedFreq * 0.1);
       const maxFreq = Math.min(1e6, normalizedFreq * 10);
-  
+
       // Flag to track if we've added the exact current frequency
       let exactFreqAdded = false;
-  
+
       for (let i = 0; i < points; i++) {
         // Logarithmic frequency scale with safety bounds
         const freq = minFreq * Math.pow(maxFreq / minFreq, i / (points - 1));
-        
+
         // Check if this frequency is very close to the normalized frequency
         // If so, use the exact normalized frequency instead
-        const useFreq = Math.abs(freq - normalizedFreq) < normalizedFreq * 0.01 
-          ? normalizedFreq 
+        const useFreq = Math.abs(freq - normalizedFreq) < normalizedFreq * 0.01
+          ? normalizedFreq
           : freq;
-        
+
         // Mark if we've added the exact frequency
         if (useFreq === normalizedFreq) {
           exactFreqAdded = true;
         }
-        
+
         const omega = 2 * Math.PI * useFreq;
         const wRCValue = omega * normalizedRes * normalizedCap;
-  
+
         // Calculate impedance, current, phase angle with numerical stability protections
         const impedance = normalizedRes / Math.sqrt(1 + Math.pow(wRCValue, 2));
         const current = impedance > 0 ? 1 / impedance : 0;
         const phaseAngle = Math.atan(wRCValue) * (180 / Math.PI);
-  
+
         freqData.push({
           frequency: useFreq,
           impedance,
@@ -340,7 +340,7 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
           wRC: wRCValue
         });
       }
-  
+
       // If we haven't added the exact frequency, add it now
       if (!exactFreqAdded) {
         const omega = 2 * Math.PI * normalizedFreq;
@@ -348,7 +348,7 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
         const impedance = normalizedRes / Math.sqrt(1 + Math.pow(wRCValue, 2));
         const current = impedance > 0 ? 1 / impedance : 0;
         const phaseAngle = Math.atan(wRCValue) * (180 / Math.PI);
-  
+
         freqData.push({
           frequency: normalizedFreq,
           impedance,
@@ -356,11 +356,11 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
           phaseAngle,
           wRC: wRCValue
         });
-  
+
         // Sort the data points by frequency to maintain order
         freqData.sort((a, b) => a.frequency - b.frequency);
       }
-  
+
       return {
         data: freqData,
         transitionFrequency: normalizedRes > 0 && normalizedCap > 0 ?

@@ -88,6 +88,63 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                 </div>
               </div>
               
+              {/* New section explaining vector currents and percentages */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-300">
+                <h3 className="font-medium mb-3 text-lg">Vector Current Relationship</h3>
+                <div className="space-y-2">
+                  <p className="font-semibold">Why resistive and capacitive currents don't add to 100%:</p>
+                  <p>In AC circuits, currents are vectors with both magnitude and direction (phase).</p>
+                  
+                  <div className="bg-white p-4 rounded my-3 border border-gray-200">
+                    <div className="flex items-center justify-center">
+                      <div className="relative h-40 w-40">
+                        {/* Coordinate axes */}
+                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-gray-300"></div>
+                        <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-gray-300"></div>
+                        
+                        {/* Vector arrows */}
+                        <div className="absolute top-1/2 left-1/2 w-16 h-0.5 bg-green-500 origin-left rotate-0"></div>
+                        <div className="absolute top-1/2 left-1/2 h-16 w-0.5 bg-blue-500 origin-top rotate-0 -translate-y-full"></div>
+                        <div className="absolute top-1/2 left-1/2 w-[90px] h-0.5 bg-red-500 origin-left rotate-45 -translate-y-[45px]"></div>
+                        
+                        {/* Labels */}
+                        <div className="absolute top-1/2 left-[75%] text-green-700 font-medium">I<sub>R</sub></div>
+                        <div className="absolute top-[15%] left-1/2 text-blue-700 font-medium">I<sub>C</sub></div>
+                        <div className="absolute top-[25%] left-[80%] text-red-700 font-medium">I<sub>total</sub></div>
+                      </div>
+                    </div>
+                    <p className="text-center text-sm mt-2">Currents as vectors: Resistive (horizontal), Capacitive (vertical), Total (diagonal)</p>
+                  </div>
+                  
+                  <p><strong>Key insights:</strong></p>
+                  <ul className="list-disc ml-5">
+                    <li>Resistive current (I<sub>R</sub>) and capacitive current (I<sub>C</sub>) are 90° out of phase</li>
+                    <li>The total current (I<sub>total</sub>) is calculated using the Pythagorean theorem</li>
+                    <li>When each current is expressed as a percentage of the total:
+                      <ul className="list-disc ml-5 mt-1">
+                        <li>Resistive %: (I<sub>R</sub>/I<sub>total</sub>) × 100%</li>
+                        <li>Capacitive %: (I<sub>C</sub>/I<sub>total</sub>) × 100%</li>
+                      </ul>
+                    </li>
+                    <li>These percentages can each approach 100% and their sum can exceed 100%</li>
+                    <li>But the sum of their squares will always equal 100%:
+                      <div className="bg-gray-100 p-2 mt-1 rounded text-center">
+                        (Resistive %)² + (Capacitive %)² = 100%
+                      </div>
+                    </li>
+                  </ul>
+                  
+                  <p className="mt-2">For example, in a circuit with equal resistive and capacitive components (ωRC = 1):</p>
+                  <ul className="list-disc ml-5">
+                    <li>I<sub>R</sub> = I<sub>C</sub> (equal currents)</li>
+                    <li>I<sub>total</sub> = √(I<sub>R</sub>² + I<sub>C</sub>²) = √2 × I<sub>R</sub></li>
+                    <li>Resistive % = (I<sub>R</sub>/I<sub>total</sub>) × 100% = 70.7%</li>
+                    <li>Capacitive % = (I<sub>C</sub>/I<sub>total</sub>) × 100% = 70.7%</li>
+                    <li>Sum = 141.4%, but (70.7%)² + (70.7%)² = 100%</li>
+                  </ul>
+                </div>
+              </div>
+              
               <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-gray-300">
                 <h3 className="font-medium mb-3 text-lg">Comparison</h3>
                 <table className="w-full border-collapse">
