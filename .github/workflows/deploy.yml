@@ -26,8 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          # Remove the cache configuration for now to fix the error
-          # We can add it back once we confirm the basic workflow works
       
       - name: Debug directory structure
         run: |
@@ -35,10 +33,12 @@ jobs:
           ls -la
           echo "Simulator directory structure:"
           ls -la Simulator
+          echo "Simulator package.json content:"
+          cat Simulator/package.json
 
       - name: Install dependencies
         working-directory: ./Simulator
-        run: npm ci
+        run: npm install
       
       - name: Build
         working-directory: ./Simulator
