@@ -16,7 +16,6 @@ import ResultsAndInterpretation from './components/ResultsAndInterpretation';
 import MathematicalModelModal from './components/MathematicalModelModal';
 import ResolutionCheckModal from './components/ResolutionCheckModal';
 import { RefreshCw, BookOpen } from 'lucide-react';
-import circuit from "../assets/circuit.png";
 
 interface RCCircuitAnalysisProps {
   initialParams?: Partial<ParameterState>;
@@ -121,7 +120,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                 </div>
                 <div className="mt-2 mb-2 flex justify-center">
                   <img
-                    src={circuit}
+                    src={`${process.env.PUBLIC_URL}/circuit.png`}
                     alt="RC Circuit Diagram"
                     className="w-full max-w-xs h-auto"
                   />
@@ -130,7 +129,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                   Representative Circuit Diagram of the AC Parallel RC Circuit for Stochastic Resonance System
                 </div>
               </div>
-             
+
               {/* Right side: All parameter controls */}
               <div className="col-span-8">
                 <div className="space-y-0">
@@ -302,20 +301,20 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                 <h3 className="text-md font-semibold mb-2">Regime Analysis</h3>
                 <div className="grid grid-cols-3 gap-2 mb-3 text-sm">
                   <div className={`p-1 rounded text-center ${(params.signalType === 'sine' && determineRegime() === "Resistive") ||
-                      (params.signalType === 'noise' && results.resistivePercent > results.capacitivePercent)
-                      ? "bg-blue-200 font-bold" : "bg-blue-50"
+                    (params.signalType === 'noise' && results.resistivePercent > results.capacitivePercent)
+                    ? "bg-blue-200 font-bold" : "bg-blue-50"
                     }`}>
                     ωRC &lt; 1: Resistive
                   </div>
                   <div className={`p-1 rounded text-center ${(params.signalType === 'sine' && determineRegime() === "Transition Point") ||
-                      (params.signalType === 'noise' && Math.abs(results.resistivePercent - results.capacitivePercent) < 5)
-                      ? "bg-purple-200 font-bold" : "bg-purple-50"
+                    (params.signalType === 'noise' && Math.abs(results.resistivePercent - results.capacitivePercent) < 5)
+                    ? "bg-purple-200 font-bold" : "bg-purple-50"
                     }`}>
                     ωRC = 1: Transition
                   </div>
                   <div className={`p-1 rounded text-center ${(params.signalType === 'sine' && determineRegime() === "Capacitive") ||
-                      (params.signalType === 'noise' && results.capacitivePercent > results.resistivePercent)
-                      ? "bg-green-200 font-bold" : "bg-green-50"
+                    (params.signalType === 'noise' && results.capacitivePercent > results.resistivePercent)
+                    ? "bg-green-200 font-bold" : "bg-green-50"
                     }`}>
                     ωRC &gt; 1: Capacitive
                   </div>
