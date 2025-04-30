@@ -139,7 +139,7 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                   <div className="absolute top-0 left-0 w-full" style={{ height: '32px' }}>
                     {/* Min thumb handle */}
                     <div
-                      className="absolute w-4 h-4 bg-white   bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+                      className="absolute w-4 h-4  bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
                       style={{
                         top: '50%',
                         left: `${((minValue - 1) * 100) / 1999}%`,
@@ -159,7 +159,7 @@ const FrequencyInputs: React.FC<FrequencyInputsProps> = ({
                     
                     {/* Max thumb handle */}
                     <div
-                      className="absolute w-4 h-4 bg-white  bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+                      className="absolute w-4 h-4 bg-gray-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
                       style={{
                         top: '50%',
                         left: `${((maxValue - 1) * 100) / 1999}%`,
