@@ -16,6 +16,7 @@ import ResultsAndInterpretation from './components/ResultsAndInterpretation';
 import MathematicalModelModal from './components/MathematicalModelModal';
 import ResolutionCheckModal from './components/ResolutionCheckModal';
 import { RefreshCw, BookOpen } from 'lucide-react';
+import circuit from "../assets/circuit.png";
 
 interface RCCircuitAnalysisProps {
   initialParams?: Partial<ParameterState>;
@@ -120,7 +121,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                 </div>
                 <div className="mt-2 mb-2 flex justify-center">
                   <img
-                    src="/circuit.png"
+                    src={circuit}
                     alt="RC Circuit Diagram"
                     className="w-full max-w-xs h-auto"
                   />
