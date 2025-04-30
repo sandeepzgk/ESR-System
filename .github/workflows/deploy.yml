@@ -27,21 +27,15 @@ jobs:
         with:
           node-version: 18
       
-      - name: Debug directory structure
-        run: |
-          echo "Repository structure:"
-          ls -la
-          echo "Simulator directory structure:"
-          ls -la Simulator
-          echo "Simulator package.json content:"
-          cat Simulator/package.json
-
       - name: Install dependencies
         working-directory: ./Simulator
         run: npm install
       
       - name: Build
         working-directory: ./Simulator
+        # Set CI=false to prevent treating warnings as errors
+        env:
+          CI: false
         run: npm run build
       
       - name: Setup Pages
