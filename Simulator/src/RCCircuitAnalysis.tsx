@@ -51,7 +51,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
 
       {/* Removed max-w-screen-2xl to use full screen width */}
       <div className="p-4 w-full mx-auto bg-gray-50 relative">
-        <h1 className="text-2xl font-bold mb-4">Electrical Stochastic Resonance Analyzer for Pure Tone and White Noise</h1>
+        <h1 className="text-2xl font-bold mb-4">Simulated Electrical Stochastic Resonance Analyzer for Pure Tone and White Noise</h1>
 
         {/* Header buttons container - modified to position both buttons together */}
         <div className="absolute top-4 right-4 flex items-center gap-3">
