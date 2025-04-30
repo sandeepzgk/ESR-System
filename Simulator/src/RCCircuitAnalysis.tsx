@@ -112,12 +112,19 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                   signalType={params.signalType} 
                   onToggle={toggleSignalType} 
                 />
-                
+        
                 <div className="text-xs text-gray-500 italic">
                   {params.signalType === 'sine'
                     ? "Note: Sine mode calculations assume pure sine waves in AC steady state."
                     : "Note: Noise mode calculations assume white noise across the specified frequency band."}
                 </div>
+                <div className="mt-2 mb-2 flex justify-center">
+  <img 
+    src="/circuit.png" 
+    alt="RC Circuit Diagram" 
+    className="w-full max-w-xs h-auto" 
+  />
+</div>
               </div>
               
               {/* Right side: All parameter controls */}
