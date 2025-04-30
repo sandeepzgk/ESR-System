@@ -1,8 +1,10 @@
-name: Deploy to GitHub Pages
+name: Deploy Simulator to GitHub Pages
 
 on:
   push:
-    branches: [ main ]  # Set this to your default branch name (main or master)
+    branches: [ main ]  # Set this to your default branch name
+    paths:
+      - 'Simulator/**'  # Only trigger when changes are made to the Simulator directory
   workflow_dispatch:    # Allows manual triggering of the workflow
 
 permissions:
@@ -25,13 +27,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18  # or your preferred Node.js version
+          node-version: 18
           cache: 'npm'
+          cache-dependency-path: 'Simulator/package-lock.json'
       
       - name: Install dependencies
+        working-directory: ./Simulator
         run: npm ci
       
       - name: Build
+        working-directory: ./Simulator
         run: npm run build
       
       - name: Setup Pages
@@ -40,7 +45,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build'
+          path: 'Simulator/build'
 
   deploy:
     environment:
