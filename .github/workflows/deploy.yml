@@ -3,8 +3,6 @@ name: Deploy Simulator to GitHub Pages
 on:
   push:
     branches: [ main ]  # Set this to your default branch name
-    paths:
-      - 'Simulator/**'  # Only trigger when changes are made to the Simulator directory
   workflow_dispatch:    # Allows manual triggering of the workflow
 
 permissions:
@@ -28,9 +26,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: 'Simulator/package-lock.json'
+          # Remove the cache configuration for now to fix the error
+          # We can add it back once we confirm the basic workflow works
       
+      - name: Debug directory structure
+        run: |
+          echo "Repository structure:"
+          ls -la
+          echo "Simulator directory structure:"
+          ls -la Simulator
+
       - name: Install dependencies
         working-directory: ./Simulator
         run: npm ci
