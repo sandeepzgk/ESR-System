@@ -24,7 +24,7 @@ interface RCCircuitAnalysisProps {
 const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {} }) => {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const {
     params,
     textValues,
@@ -48,11 +48,11 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
     <ErrorBoundary>
       {/* Add Resolution Check Modal */}
       <ResolutionCheckModal />
-      
+
       {/* Removed max-w-screen-2xl to use full screen width */}
       <div className="p-4 w-full mx-auto bg-gray-50 relative">
-        <h1 className="text-2xl font-bold mb-4">AC Parallel RC Circuit Analysis</h1>
-        
+        <h1 className="text-2xl font-bold mb-4">Electrical Stochastic Resonance Analyzer for Pure Tone and White Noise</h1>
+
         {/* Header buttons container - modified to position both buttons together */}
         <div className="absolute top-4 right-4 flex items-center gap-3">
           {/* Reset Parameters Button - moved next to Circuit Theory button with updated styling */}
@@ -63,7 +63,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
             <RefreshCw size={18} />
             <span>Reset All Parameters</span>
           </button>
-          
+
           {/* Circuit Theory & Safety Button - updated styling */}
           <button
             onClick={() => setIsModalOpen(true)}
@@ -75,7 +75,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
         </div>
 
         {/* Mathematical Model Modal */}
-        <MathematicalModelModal 
+        <MathematicalModelModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
         />
@@ -97,36 +97,39 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
             onReset={resetCircuit}
           />
         </div>
-        
+
         {/* Dashboard Layout */}
         <div className="grid grid-cols-12 gap-4">
           {/* Top Row: Parameters and Safety Threshold */}
           <div className="col-span-8 bg-white rounded-lg shadow p-4 relative">
             <h2 className="text-lg font-semibold mb-2">Circuit Parameters</h2>
-            
+
             {/* Modified layout: Left side for signal type, notes and right side for parameter controls */}
             <div className="grid grid-cols-12 gap-2">
               {/* Left side: Signal Type, Notes */}
               <div className="col-span-4">
-                <SignalTypeSelector 
-                  signalType={params.signalType} 
-                  onToggle={toggleSignalType} 
+                <SignalTypeSelector
+                  signalType={params.signalType}
+                  onToggle={toggleSignalType}
                 />
-        
+
                 <div className="text-xs text-gray-500 italic">
                   {params.signalType === 'sine'
                     ? "Note: Sine mode calculations assume pure sine waves in AC steady state."
                     : "Note: Noise mode calculations assume white noise across the specified frequency band."}
                 </div>
                 <div className="mt-2 mb-2 flex justify-center">
-  <img 
-    src="/circuit.png" 
-    alt="RC Circuit Diagram" 
-    className="w-full max-w-xs h-auto" 
-  />
-</div>
+                  <img
+                    src="/circuit.png"
+                    alt="RC Circuit Diagram"
+                    className="w-full max-w-xs h-auto"
+                  />
+                </div>
+                <div className="text-xs text-gray-500 italic">
+                  Representative Circuit Diagram of the AC Parallel RC Circuit for Stochastic Resonance System
+                </div>
               </div>
-              
+             
               {/* Right side: All parameter controls */}
               <div className="col-span-8">
                 <div className="space-y-0">
@@ -138,7 +141,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                     onTextChange={handleTextChange}
                     hasValidationErrors={checkParamValidationState('resistance')}
                   />
-                  
+
                   <ParameterControl
                     paramName="capacitance"
                     params={params}
@@ -147,7 +150,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                     onTextChange={handleTextChange}
                     hasValidationErrors={checkParamValidationState('capacitance')}
                   />
-                  
+
                   <ParameterControl
                     paramName="voltage"
                     params={params}
@@ -156,7 +159,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                     onTextChange={handleTextChange}
                     hasValidationErrors={checkParamValidationState('voltage')}
                   />
-                  
+
                   <FrequencyInputs
                     signalType={params.signalType}
                     params={params}
@@ -170,7 +173,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
               </div>
             </div>
           </div>
-          
+
           {/* Human Body Safety Threshold */}
           <div className="col-span-4 bg-blue-50 rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold mb-2">Human Body Safety Threshold</h2>
@@ -196,13 +199,13 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
               changes significantly.
             </div>
           </div>
-          
+
           {/* Middle Row: Frequency Response and Circuit Characteristics with integrated results */}
           {/* Frequency Response Analysis - 6 columns */}
           <div className="col-span-6 bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold mb-4">
-              {params.signalType === 'sine' 
-                ? "Frequency Response Analysis" 
+              {params.signalType === 'sine'
+                ? "Frequency Response Analysis"
                 : "Frequency Response (Noise Mode)"}
             </h2>
             <FrequencyResponseChart
@@ -214,14 +217,14 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
 
           {/* Circuit Characteristics with integrated Circuit Analysis Results - 6 columns */}
           <div className="col-span-6 bg-white rounded-lg shadow p-4">
-            
+
             {/* Visualizations Component */}
             <CircuitVisualizations
               results={results}
               determineRegime={determineRegime}
               signalType={params.signalType}
             />
-            
+
             {/* Integrated Circuit Analysis Results */}
             <div className="mt-6 border-t pt-4">
               <h3 className="text-md font-semibold mb-3">Analysis Results</h3>
@@ -292,34 +295,31 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Regime Analysis - Moved from bottom section to here */}
               <div className="mt-4 pt-3 border-t">
                 <h3 className="text-md font-semibold mb-2">Regime Analysis</h3>
                 <div className="grid grid-cols-3 gap-2 mb-3 text-sm">
-                  <div className={`p-1 rounded text-center ${
-                    (params.signalType === 'sine' && determineRegime() === "Resistive") || 
-                    (params.signalType === 'noise' && results.resistivePercent > results.capacitivePercent)
-                    ? "bg-blue-200 font-bold" : "bg-blue-50"
-                  }`}>
+                  <div className={`p-1 rounded text-center ${(params.signalType === 'sine' && determineRegime() === "Resistive") ||
+                      (params.signalType === 'noise' && results.resistivePercent > results.capacitivePercent)
+                      ? "bg-blue-200 font-bold" : "bg-blue-50"
+                    }`}>
                     ωRC &lt; 1: Resistive
                   </div>
-                  <div className={`p-1 rounded text-center ${
-                    (params.signalType === 'sine' && determineRegime() === "Transition Point") || 
-                    (params.signalType === 'noise' && Math.abs(results.resistivePercent - results.capacitivePercent) < 5)
-                    ? "bg-purple-200 font-bold" : "bg-purple-50"
-                  }`}>
+                  <div className={`p-1 rounded text-center ${(params.signalType === 'sine' && determineRegime() === "Transition Point") ||
+                      (params.signalType === 'noise' && Math.abs(results.resistivePercent - results.capacitivePercent) < 5)
+                      ? "bg-purple-200 font-bold" : "bg-purple-50"
+                    }`}>
                     ωRC = 1: Transition
                   </div>
-                  <div className={`p-1 rounded text-center ${
-                    (params.signalType === 'sine' && determineRegime() === "Capacitive") || 
-                    (params.signalType === 'noise' && results.capacitivePercent > results.resistivePercent)
-                    ? "bg-green-200 font-bold" : "bg-green-50"
-                  }`}>
+                  <div className={`p-1 rounded text-center ${(params.signalType === 'sine' && determineRegime() === "Capacitive") ||
+                      (params.signalType === 'noise' && results.capacitivePercent > results.resistivePercent)
+                      ? "bg-green-200 font-bold" : "bg-green-50"
+                    }`}>
                     ωRC &gt; 1: Capacitive
                   </div>
                 </div>
-                
+
                 <div className="text-sm">
                   {params.signalType === 'sine' ? (
                     <p>Current mode: <span className="font-medium">{determineRegime()}</span> with ωRC = {(results.wRC as number).toFixed(4)}</p>
