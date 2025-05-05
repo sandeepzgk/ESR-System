@@ -10,6 +10,11 @@ import {
 } from '../types';
 import { unitSystem, physicalLimits } from '../constants';
 import { validateCircuitParameters } from '../utils';
+import { 
+  calculateRCNoiseResponse, 
+  calculateEffectiveWRC, 
+  determineNoiseRegime 
+} from '../noiseCalculations';
 
 // Core RC Circuit Hook with optimized calculation strategy
 const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
@@ -101,44 +106,6 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
     const validation = validateCircuitParameters(normalizedValues);
     setValidationErrors(validation.errors);
   }, [normalizedValues]);
-
-  // Helper function for calculating capacitive current in noise mode with correct dimensional analysis
-  const calculateCapacitiveNoiseResponse = (
-    voltageRMS: number, 
-    capacitance: number, 
-    fMin: number, 
-    fMax: number
-  ): number => {
-    try {
-      if (fMin >= fMax || fMin <= 0 || !isFinite(fMin) || !isFinite(fMax)) {
-        return 0;
-      }
-
-      // For a capacitor with white noise input:
-      // Voltage PSD = V_RMS^2 / (f_max - f_min) [V^2/Hz]
-      // Current PSD at each frequency = Voltage PSD × |Y(f)|^2
-      // where Y(f) = j2πfC is the admittance
-      
-      // Voltage spectral density (PSD) for white noise
-      const voltagePSD = Math.pow(voltageRMS, 2) / (fMax - fMin);
-      
-      // Integrate current PSD across the band
-      // I_C,RMS^2 = ∫(voltagePSD × (2πf×C)^2) df from f_min to f_max
-      const twoPiSquared = Math.pow(2 * Math.PI, 2);
-      const capSquared = Math.pow(capacitance, 2);
-      
-      // Integration result: ∫f^2 df = f^3/3
-      const integral = (Math.pow(fMax, 3) - Math.pow(fMin, 3)) / 3;
-      
-      // Combine all terms for final RMS current
-      const currentRMSSquared = voltagePSD * twoPiSquared * capSquared * integral;
-      
-      return Math.sqrt(currentRMSSquared);
-    } catch (error) {
-      console.error("Error in capacitive noise calculation:", error);
-      return 0;
-    }
-  };
 
   // Calculate all circuit results in one go using memoization
   const results = useMemo<CircuitResults>(() => {
@@ -248,33 +215,40 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
         // For noise mode, voltage is treated as RMS directly
         const voltageRMS = voltage;
 
-        // Calculate resistor current (same as for sine wave)
-        const currentRRMS = voltageRMS / resistance;
-
-        // Calculate capacitor current for white noise using the corrected formula with proper dimensional analysis
-        const currentCRMS = calculateCapacitiveNoiseResponse(
+        // Use the unified calculateRCNoiseResponse function instead of separate calculations
+        const noiseResponse = calculateRCNoiseResponse(
           voltageRMS,
+          resistance,
           capacitance,
           noiseMinFrequency,
           noiseMaxFrequency
         );
 
-        // Calculate total RMS current
-        const currentTotalRMS = Math.sqrt(Math.pow(currentRRMS, 2) + Math.pow(currentCRMS, 2));
+        // Extract results from the response
+        const { currentR, currentC, currentTotal } = noiseResponse;
 
         // Calculate percentages
-        const resistivePercent = currentTotalRMS > 0 ? (currentRRMS / currentTotalRMS) * 100 : 0;
-        const capacitivePercent = currentTotalRMS > 0 ? (currentCRMS / currentTotalRMS) * 100 : 0;
+        const resistivePercent = currentTotal > 0 ? (currentR / currentTotal) * 100 : 0;
+        const capacitivePercent = currentTotal > 0 ? (currentC / currentTotal) * 100 : 0;
 
         // Check if current is safe
-        const isSafe = currentTotalRMS < safeCurrentThreshold;
+        const isSafe = currentTotal < safeCurrentThreshold;
+
+        // Calculate the effective wRC value for the noise band using the utility function
+        const effectiveWRC = calculateEffectiveWRC(
+          resistance,
+          capacitance,
+          noiseMinFrequency,
+          noiseMaxFrequency
+        );
 
         // Return noise mode results
         return {
           voltageRMS,
-          currentR: currentRRMS,
-          currentC: currentCRMS,
-          currentTotal: currentTotalRMS,
+          currentR,
+          currentC,
+          currentTotal,
+          effectiveWRC, // Added this for better regime determination
           resistivePercent,
           capacitivePercent,
           isSafe,
@@ -417,16 +391,26 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
 
   // Helper function to determine circuit regime
   const determineRegime = useCallback((): string => {
-    // Only applicable for sine mode
-    if (params.signalType === 'noise') {
-      return "Noise Mode";
+    // For sine mode, use local calculation
+    if (params.signalType === 'sine') {
+      if (!isFinite(results.wRC as number) || isNaN(results.wRC as number)) return "Indeterminate";
+      if ((results.wRC as number) < 1) return "Resistive";
+      if ((results.wRC as number) > 1) return "Capacitive";
+      return "Transition Point";
     }
-
-    if (!isFinite(results.wRC as number) || isNaN(results.wRC as number)) return "Indeterminate";
-    if ((results.wRC as number) < 1) return "Resistive";
-    if ((results.wRC as number) > 1) return "Capacitive";
-    return "Transition Point";
-  }, [results.wRC, params.signalType]);
+    
+    // For noise mode, use the dedicated function from noiseCalculations.ts
+    if (results.noiseBandwidth) {
+      return determineNoiseRegime(
+        normalizedValues.resistance,
+        normalizedValues.capacitance,
+        results.noiseBandwidth.min,
+        results.noiseBandwidth.max
+      );
+    }
+    
+    return "Indeterminate";
+  }, [results, params.signalType, normalizedValues]);
 
   // Toggle signal type between sine and noise
   const toggleSignalType = useCallback(() => {

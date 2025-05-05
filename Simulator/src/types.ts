@@ -104,6 +104,7 @@ export interface CircuitResults {
   calculationError?: string;
   noiseValidationError?: string;  // Added for noise mode validation
   noiseBandwidth?: { min: number, max: number };  // Added for noise mode
+  effectiveWRC?: number;  // Add this line to fix the error
 }
 
 // Define types for frequency response data

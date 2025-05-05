@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ParameterState, TextValues, ParameterWithUnit } from '../types';
 import { unitSystem } from '../constants';
 
@@ -12,7 +12,7 @@ interface ParameterControlProps {
   hasValidationErrors: boolean;
 }
 
-// Optimized parameter control component with horizontal layout
+// Responsive parameter control component with layout adaptation for mobile
 const ParameterControl: React.FC<ParameterControlProps> = ({
   paramName,
   params,
@@ -21,6 +21,19 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
   onTextChange,
   hasValidationErrors
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   if (!params || !params[paramName]) {
     console.error(`Parameter '${paramName}' not found`);
     return null;
@@ -53,8 +66,62 @@ const ParameterControl: React.FC<ParameterControlProps> = ({
     return paramName.charAt(0).toUpperCase() + paramName.slice(1);
   };
 
+  // For mobile layout
+  if (isMobile) {
+    return (
+      <div className={`rounded-md p-3 bg-white mb-3 ${hasValidationErrors ? 'border border-yellow-300' : 'border border-gray-200'}`}>
+        {/* Label at the top */}
+        <div className={`text-sm font-medium mb-2 ${hasValidationErrors ? 'text-yellow-700' : 'text-gray-700'}`}>
+          {getLabel()}
+        </div>
+        
+        {/* Text input and unit selector always at the top for quick adjustments */}
+        <div className="flex mb-3">
+          <input
+            type="text"
+            value={textValue}
+            onChange={(e) => onTextChange(paramName, e.target.value)}
+            className={`flex-grow px-3 py-2 text-sm border rounded-l-md text-right ${
+              hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300'
+            }`}
+          />
+          <select
+            value={unit}
+            onChange={(e) => onParamChange(paramName, { unit: e.target.value })}
+            className={`w-20 border rounded-r-md text-sm py-2 px-1 ${
+              hasValidationErrors ? 'border-yellow-300 bg-yellow-50' : 'border-gray-300 bg-gray-50'
+            }`}
+          >
+            {system.units.map(u => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Slider with larger touch area */}
+        <div className="flex-grow">
+          <input
+            type="range"
+            min={range[0]}
+            max={range[1]}
+            step={(range[1] - range[0]) / 100}
+            value={value}
+            onChange={(e) => onParamChange(paramName, { value: parseFloat(e.target.value) })}
+            className={`w-full h-8 ${hasValidationErrors ? 'accent-yellow-500' : ''}`}
+            style={{ touchAction: 'manipulation' }} // Better touch handling
+          />
+          <div className="flex justify-between text-xs mt-1">
+            <span>{`${range[0]}`}</span>
+            <span>{`${range[1]}`}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For desktop layout - horizontal arrangement
   return (
-    <div className={` py-2 flex items-center rounded-md px-3 bg-white border border-gray-200`}>
+    <div className={`py-2 flex items-center rounded-md px-3 bg-white border border-gray-200`}>
       {/* Label on the left side */}
       <div className={`w-48 text-sm font-medium ${hasValidationErrors ? 'text-yellow-700' : 'text-gray-700'}`}>
         {getLabel()}

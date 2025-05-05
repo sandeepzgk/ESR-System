@@ -193,7 +193,28 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                 </table>
               </div>
               
-              {/* Other noise mode sections remain unchanged */}
+              {/* Noise Regime Classification - Updated to match noiseCalculations.ts */}
+              <div className="bg-gray-50 p-4 rounded shadow border-l-4 border-purple-300">
+                <h3 className="font-medium mb-3 text-lg">Noise Regime Classification</h3>
+                <div className="space-y-3">
+                  <p>When analyzing RC circuits under white noise excitation, we classify the circuit's behavior into regimes based on the "effective ωRC" value:</p>
+                  
+                  <div className="bg-white p-3 rounded border border-gray-200">
+                    <ol className="list-decimal ml-5 space-y-1">
+                      <li>For <strong>predominantly resistive</strong> circuits: effective ωRC &lt; 0.5</li>
+                      <li>For <strong>transition region</strong>: 0.5 ≤ effective ωRC ≤ 1.5</li>
+                      <li>For <strong>predominantly capacitive</strong> circuits: effective ωRC &gt; 1.5</li>
+                    </ol>
+                  </div>
+                  
+                  <p>The effective ωRC for noise is calculated based on the center frequency of the band:</p>
+                  <div className="bg-white p-3 rounded border border-gray-200">
+                    <p>effective ωRC = 2π × [(f<sub>min</sub> + f<sub>max</sub>)/2] × R × C</p>
+                  </div>
+                  
+                  <p className="text-sm">Note: These regime boundaries (0.5 and 1.5) provide a more nuanced classification than the single-frequency case, accounting for the broader frequency response in noise mode.</p>
+                </div>
+              </div>
             </div>
           )}
           

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CircuitResults } from '../types';
 import { formatValue } from '../utils';
+import { calculateEffectiveWRC, determineNoiseRegime } from '../noiseCalculations';
 
 interface ResultsAndInterpretationProps {
   results: CircuitResults;
@@ -26,7 +27,8 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
     values,
     calculationError,
     noiseValidationError,
-    noiseBandwidth
+    noiseBandwidth,
+    effectiveWRC  // Use the pre-calculated effectiveWRC if available
   } = results;
 
   // Default safeThreshold if values is undefined
@@ -64,25 +66,34 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
     );
   }
 
-  // Calculate effective ωRC for noise mode (at central frequency)
-  const calculateEffectiveWRC = () => {
-    if (!noiseBandwidth) return null;
+  // Get effective ωRC for noise mode using the dedicated function
+  const getNoiseEffectiveWRC = () => {
+    if (!noiseBandwidth || !values) return null;
     
-    const centerFreq = (noiseBandwidth.min + noiseBandwidth.max) / 2;
-    if (!values) return null;
+    // Use the pre-calculated value if available
+    if (typeof effectiveWRC === 'number' && isFinite(effectiveWRC)) {
+      return effectiveWRC;
+    }
     
-    const effectiveWRC = 2 * Math.PI * centerFreq * values.resistance * values.capacitance;
-    return effectiveWRC;
+    // Otherwise calculate it using the imported function
+    return calculateEffectiveWRC(
+      values.resistance,
+      values.capacitance,
+      noiseBandwidth.min,
+      noiseBandwidth.max
+    );
   };
   
-  // Determine regime for noise mode based on center frequency
-  const determineNoiseRegime = () => {
-    const effectiveWRC = calculateEffectiveWRC();
-    if (!effectiveWRC) return "Indeterminate";
+  // Get noise regime using the dedicated function
+  const getNoiseRegime = () => {
+    if (!noiseBandwidth || !values) return "Indeterminate";
     
-    if (effectiveWRC < 1) return "Predominantly Resistive";
-    if (effectiveWRC > 1) return "Predominantly Capacitive";
-    return "Transition Region";
+    return determineNoiseRegime(
+      values.resistance,
+      values.capacitance,
+      noiseBandwidth.min,
+      noiseBandwidth.max
+    );
   };
 
   return (
@@ -130,8 +141,8 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
                 </tr>
                 <tr className="border-t">
                   <td className="p-2">Effective ωRC (at center freq)</td>
-                  <td className="p-2">{calculateEffectiveWRC()?.toFixed(4) || "--"}</td>
-                  <td className="p-2">{determineNoiseRegime()}</td>
+                  <td className="p-2">{getNoiseEffectiveWRC()?.toFixed(4) || "--"}</td>
+                  <td className="p-2">{getNoiseRegime()}</td>
                 </tr>
               </>
             )}
@@ -165,7 +176,6 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
             : "Note: White noise calculations assume flat power spectral density across the specified band."}
         </div>
       </div>
-
 
       <div className="bg-gray-100 p-4 rounded-lg">
         <h2 className="text-lg font-semibold mb-4">Circuit Analysis Interpretation</h2>
@@ -216,21 +226,21 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
                 <div className="grid grid-cols-3 gap-2 mb-2 text-sm">
                   <div className={`p-1 rounded text-center ${
                     (signalType === 'sine' && determineRegime() === "Resistive") || 
-                    (signalType === 'noise' && determineNoiseRegime() === "Predominantly Resistive")
+                    (signalType === 'noise' && getNoiseRegime() === "Predominantly Resistive")
                     ? "bg-blue-200 font-bold" : "bg-blue-50"
                   }`}>
                     ωRC &lt; 1: Resistive
                   </div>
                   <div className={`p-1 rounded text-center ${
                     (signalType === 'sine' && determineRegime() === "Transition Point") || 
-                    (signalType === 'noise' && determineNoiseRegime() === "Transition Region")
+                    (signalType === 'noise' && getNoiseRegime() === "Transition Region")
                     ? "bg-purple-200 font-bold" : "bg-purple-50"
                   }`}>
                     ωRC = 1: Transition
                   </div>
                   <div className={`p-1 rounded text-center ${
                     (signalType === 'sine' && determineRegime() === "Capacitive") || 
-                    (signalType === 'noise' && determineNoiseRegime() === "Predominantly Capacitive")
+                    (signalType === 'noise' && getNoiseRegime() === "Predominantly Capacitive")
                     ? "bg-green-200 font-bold" : "bg-green-50"
                   }`}>
                     ωRC &gt; 1: Capacitive
@@ -239,7 +249,7 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
                 <p className="font-medium">
                   {signalType === 'sine' 
                     ? `Current: ${determineRegime()} mode with ωRC = ${(wRC as number).toFixed(2)}`
-                    : `Current: ${determineNoiseRegime()} with effective ωRC ≈ ${calculateEffectiveWRC()?.toFixed(2) || "--"} at center frequency`
+                    : `Current: ${getNoiseRegime()} with effective ωRC ≈ ${getNoiseEffectiveWRC()?.toFixed(2) || "--"} at center frequency`
                   }
                 </p>
               </ul>
