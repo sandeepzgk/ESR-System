@@ -102,6 +102,44 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
     setValidationErrors(validation.errors);
   }, [normalizedValues]);
 
+  // Helper function for calculating capacitive current in noise mode with correct dimensional analysis
+  const calculateCapacitiveNoiseResponse = (
+    voltageRMS: number, 
+    capacitance: number, 
+    fMin: number, 
+    fMax: number
+  ): number => {
+    try {
+      if (fMin >= fMax || fMin <= 0 || !isFinite(fMin) || !isFinite(fMax)) {
+        return 0;
+      }
+
+      // For a capacitor with white noise input:
+      // Voltage PSD = V_RMS^2 / (f_max - f_min) [V^2/Hz]
+      // Current PSD at each frequency = Voltage PSD × |Y(f)|^2
+      // where Y(f) = j2πfC is the admittance
+      
+      // Voltage spectral density (PSD) for white noise
+      const voltagePSD = Math.pow(voltageRMS, 2) / (fMax - fMin);
+      
+      // Integrate current PSD across the band
+      // I_C,RMS^2 = ∫(voltagePSD × (2πf×C)^2) df from f_min to f_max
+      const twoPiSquared = Math.pow(2 * Math.PI, 2);
+      const capSquared = Math.pow(capacitance, 2);
+      
+      // Integration result: ∫f^2 df = f^3/3
+      const integral = (Math.pow(fMax, 3) - Math.pow(fMin, 3)) / 3;
+      
+      // Combine all terms for final RMS current
+      const currentRMSSquared = voltagePSD * twoPiSquared * capSquared * integral;
+      
+      return Math.sqrt(currentRMSSquared);
+    } catch (error) {
+      console.error("Error in capacitive noise calculation:", error);
+      return 0;
+    }
+  };
+
   // Calculate all circuit results in one go using memoization
   const results = useMemo<CircuitResults>(() => {
     try {
@@ -213,17 +251,13 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
         // Calculate resistor current (same as for sine wave)
         const currentRRMS = voltageRMS / resistance;
 
-        // Calculate capacitor current for white noise using the formula for flat power spectral density:
-        // I_C,RMS = V_in,RMS * (2πC) * sqrt((f_max^3 - f_min^3) / (3*(f_max - f_min)))
-        // This formula accounts for the fact that capacitive reactance decreases with frequency,
-        // so higher frequencies in the noise band contribute more to the current
-        const twoPiC = 2 * Math.PI * capacitance;
-        const fMaxCubed = Math.pow(noiseMaxFrequency, 3);
-        const fMinCubed = Math.pow(noiseMinFrequency, 3);
-        const freqDiff = noiseMaxFrequency - noiseMinFrequency;
-
-
-        const currentCRMS = voltageRMS * twoPiC * Math.sqrt((fMaxCubed - fMinCubed) / (3 * freqDiff));
+        // Calculate capacitor current for white noise using the corrected formula with proper dimensional analysis
+        const currentCRMS = calculateCapacitiveNoiseResponse(
+          voltageRMS,
+          capacitance,
+          noiseMinFrequency,
+          noiseMaxFrequency
+        );
 
         // Calculate total RMS current
         const currentTotalRMS = Math.sqrt(Math.pow(currentRRMS, 2) + Math.pow(currentCRMS, 2));
@@ -342,12 +376,14 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
       }
 
       // If we haven't added the exact frequency, add it now
+      const EPSILON = 1e-12;
       if (!exactFreqAdded) {
         const omega = 2 * Math.PI * normalizedFreq;
         const wRCValue = omega * normalizedRes * normalizedCap;
         const impedance = normalizedRes / Math.sqrt(1 + Math.pow(wRCValue, 2));
         const current = impedance > 0 ? 1 / impedance : 0;
         const phaseAngle = Math.atan(wRCValue) * (180 / Math.PI);
+        
 
         freqData.push({
           frequency: normalizedFreq,
@@ -363,8 +399,8 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
 
       return {
         data: freqData,
-        transitionFrequency: normalizedRes > 0 && normalizedCap > 0 ?
-          1 / (2 * Math.PI * normalizedRes * normalizedCap) : 0,
+       
+        transitionFrequency: (normalizedRes > EPSILON && normalizedCap > EPSILON) ? 1 / (2 * Math.PI * normalizedRes * normalizedCap) : 0,
         currentFrequency: normalizedFreq,
         error: null
       };
