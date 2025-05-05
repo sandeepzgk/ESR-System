@@ -1,3 +1,10 @@
+/**
+ * useRCCircuit.ts
+ * 
+ * React hook for RC circuit analysis, using the centralized calculation module
+ * for all circuit-related calculations.
+ */
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ParameterState,
@@ -9,24 +16,20 @@ import {
   FrequencyDataPoint
 } from '../types';
 import { unitSystem, physicalLimits } from '../constants';
-import { validateCircuitParameters } from '../utils';
-import { 
-  calculateRCNoiseResponse, 
-  calculateEffectiveWRC, 
-  determineNoiseRegime 
-} from '../noiseCalculations';
+import { formatValue } from '../utils';
+import * as CircuitCalc from '../circuitCalculations';
 
 // Core RC Circuit Hook with optimized calculation strategy
 const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
   // Default parameters with units - wrapped in useMemo to avoid dependency issues
   const defaultParams = useMemo<ParameterState>(() => ({
-    voltage: { value: 1, unit: 'V' },          // Changed from 1V to 5V for more noticeable haptic feedback
-    resistance: { value: 50, unit: 'kΩ' },      // Keep as is - matches typical body resistance
-    capacitance: { value: 50, unit: 'nF' },   // Changed from 50nF to 150pF to match human body capacitance
-    frequency: { value: 50, unit: 'Hz' },      // Changed from 1000Hz to 50Hz for optimal haptic perception
-    noiseMinFrequency: { value: 20, unit: 'Hz' }, // Changed from 100Hz to 20Hz for better haptic range
-    noiseMaxFrequency: { value: 1990, unit: 'Hz' }, // Changed from 1000Hz to 100Hz to stay in resistive regime
-    safeCurrentThreshold: { value: 500, unit: 'μA' }, // Keep as is - already at safe threshold
+    voltage: { value: 1, unit: 'V' },
+    resistance: { value: 50, unit: 'kΩ' },
+    capacitance: { value: 50, unit: 'nF' },
+    frequency: { value: 50, unit: 'Hz' },
+    noiseMinFrequency: { value: 20, unit: 'Hz' },
+    noiseMaxFrequency: { value: 1990, unit: 'Hz' },
+    safeCurrentThreshold: { value: 500, unit: 'μA' },
     signalType: 'sine'
   }), []);
 
@@ -101,159 +104,79 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
     safeCurrentThreshold: getNormalizedValue('safeCurrentThreshold')
   }), [getNormalizedValue]);
 
-  // Validate parameters
+  // Validate parameters using the centralized validation function
   useEffect(() => {
-    const validation = validateCircuitParameters(normalizedValues);
-    setValidationErrors(validation.errors);
-  }, [normalizedValues]);
+    const signalType = params.signalType;
+    
+    // Create circuit parameters for validation
+    const circuitParams: CircuitCalc.CircuitParameters = {
+      voltage: normalizedValues.voltage,
+      resistance: normalizedValues.resistance,
+      capacitance: normalizedValues.capacitance,
+      frequency: normalizedValues.frequency,
+      noiseMinFreq: normalizedValues.noiseMinFrequency,
+      noiseMaxFreq: normalizedValues.noiseMaxFrequency,
+      safeCurrentThreshold: normalizedValues.safeCurrentThreshold
+    };
+    
+    // Use the centralized validation function
+    const errors = CircuitCalc.validateCircuitParameters(circuitParams, signalType);
+    setValidationErrors(errors);
+  }, [normalizedValues, params.signalType]);
 
-  // Calculate all circuit results in one go using memoization
+  // Calculate all circuit results using the centralized calculation functions
   const results = useMemo<CircuitResults>(() => {
     try {
       setHasCalculationError(false);
-
-      // Extract normalized values
-      const {
-        voltage,
-        resistance,
-        capacitance,
-        frequency,
-        noiseMinFrequency,
-        noiseMaxFrequency,
-        safeCurrentThreshold
-      } = normalizedValues;
-
+      
+      // Create circuit parameters for calculation
+      const circuitParams: CircuitCalc.CircuitParameters = {
+        voltage: normalizedValues.voltage,
+        resistance: normalizedValues.resistance,
+        capacitance: normalizedValues.capacitance,
+        frequency: normalizedValues.frequency,
+        noiseMinFreq: normalizedValues.noiseMinFrequency,
+        noiseMaxFreq: normalizedValues.noiseMaxFrequency,
+        safeCurrentThreshold: normalizedValues.safeCurrentThreshold
+      };
+      
       // Get signal type
       const signalType = params.signalType;
-
+      
+      // Use the centralized calculation function
+      const calculationResults = CircuitCalc.calculateCircuit(circuitParams, signalType);
+      
+      // Map the calculation results to the CircuitResults type expected by the UI
       if (signalType === 'sine') {
-        // Sine mode calculations
-
-        // Calculate angular frequency
-        const omega = 2 * Math.PI * frequency;
-
-        // Calculate normalized parameter ωRC
-        const wRC = omega * resistance * capacitance;
-
-        // Calculate RMS voltage (assuming sine wave)
-        // Note: For a sine wave, the RMS value is Vpeak / sqrt(2)
-        // If Vpp (peak-to-peak) is the input, then RMS = Vpp / (2*sqrt(2))
-        const voltageRMS = voltage / (2 * Math.sqrt(2));
-
-        // Calculate currents (in A) - assuming AC steady state with pure sine waves
-        const currentR = voltageRMS / resistance;
-        const currentC = voltageRMS * omega * capacitance;
-        const currentTotal = Math.sqrt(Math.pow(currentR, 2) + Math.pow(currentC, 2));
-
-        // Calculate phase angle and power factor
-        const phaseAngle = Math.atan(wRC) * (180 / Math.PI);
-        const powerFactor = Math.cos(Math.atan(wRC));
-
-        // Calculate impedance
-        const impedance = resistance / Math.sqrt(1 + Math.pow(wRC, 2));
-
-        // Calculate percentages for bars with division by zero protection
-        const resistivePercent = currentTotal > 0 ? (currentR / currentTotal) * 100 : 0;
-        const capacitivePercent = currentTotal > 0 ? (currentC / currentTotal) * 100 : 0;
-
-        // Safety check
-        const isSafe = currentTotal < safeCurrentThreshold;
-
-        // Return all calculated results for sine mode
         return {
-          wRC,
-          omega,
-          voltageRMS,
-          currentR,
-          currentC,
-          currentTotal,
-          phaseAngle,
-          powerFactor,
-          impedance,
-          resistivePercent,
-          capacitivePercent,
-          isSafe,
-          // Original normalized values for reference
-          values: { voltage, resistance, capacitance, frequency, noiseMinFrequency, noiseMaxFrequency, safeCurrentThreshold },
+          wRC: calculationResults.wRC,
+          omega: CircuitCalc.calculateOmega(normalizedValues.frequency),
+          voltageRMS: calculationResults.voltageRMS,
+          currentR: calculationResults.currentR,
+          currentC: calculationResults.currentC,
+          currentTotal: calculationResults.currentTotal,
+          phaseAngle: calculationResults.phaseAngle,
+          powerFactor: calculationResults.powerFactor,
+          impedance: calculationResults.impedance,
+          resistivePercent: calculationResults.resistivePercent,
+          capacitivePercent: calculationResults.capacitivePercent,
+          isSafe: calculationResults.isSafe,
+          values: normalizedValues,
           noiseValidationError: undefined,
           noiseBandwidth: undefined
         };
       } else {
-        // Noise mode calculations
-
-        // First, validate noise frequency inputs
-        if (noiseMinFrequency < physicalLimits.minNoiseFrequencyLimit ||
-          noiseMaxFrequency > physicalLimits.maxNoiseFrequencyLimit ||
-          noiseMinFrequency >= noiseMaxFrequency) {
-
-          // Determine specific error message
-          let errorMessage: string;
-          if (noiseMinFrequency >= noiseMaxFrequency) {
-            errorMessage = "Min frequency must be less than max frequency";
-          } else if (noiseMinFrequency < physicalLimits.minNoiseFrequencyLimit) {
-            errorMessage = `Min frequency must be at least ${physicalLimits.minNoiseFrequencyLimit} Hz`;
-          } else {
-            errorMessage = `Max frequency must be at most ${physicalLimits.maxNoiseFrequencyLimit} Hz`;
-          }
-
-          // Return error result with default values
-          return {
-            voltageRMS: voltage, // In noise mode, voltage is already RMS
-            currentR: 0,
-            currentC: 0,
-            currentTotal: 0,
-            resistivePercent: 0,
-            capacitivePercent: 0,
-            isSafe: true, // Default to safe when invalid
-            values: { voltage, resistance, capacitance, frequency, noiseMinFrequency, noiseMaxFrequency, safeCurrentThreshold },
-            noiseValidationError: errorMessage,
-            noiseBandwidth: { min: noiseMinFrequency, max: noiseMaxFrequency },
-            calculationError: undefined
-          };
-        }
-
-        // For noise mode, voltage is treated as RMS directly
-        const voltageRMS = voltage;
-
-        // Use the unified calculateRCNoiseResponse function instead of separate calculations
-        const noiseResponse = calculateRCNoiseResponse(
-          voltageRMS,
-          resistance,
-          capacitance,
-          noiseMinFrequency,
-          noiseMaxFrequency
-        );
-
-        // Extract results from the response
-        const { currentR, currentC, currentTotal } = noiseResponse;
-
-        // Calculate percentages
-        const resistivePercent = currentTotal > 0 ? (currentR / currentTotal) * 100 : 0;
-        const capacitivePercent = currentTotal > 0 ? (currentC / currentTotal) * 100 : 0;
-
-        // Check if current is safe
-        const isSafe = currentTotal < safeCurrentThreshold;
-
-        // Calculate the effective wRC value for the noise band using the utility function
-        const effectiveWRC = calculateEffectiveWRC(
-          resistance,
-          capacitance,
-          noiseMinFrequency,
-          noiseMaxFrequency
-        );
-
-        // Return noise mode results
         return {
-          voltageRMS,
-          currentR,
-          currentC,
-          currentTotal,
-          effectiveWRC, // Added this for better regime determination
-          resistivePercent,
-          capacitivePercent,
-          isSafe,
-          values: { voltage, resistance, capacitance, frequency, noiseMinFrequency, noiseMaxFrequency, safeCurrentThreshold },
-          noiseBandwidth: { min: noiseMinFrequency, max: noiseMaxFrequency },
+          voltageRMS: calculationResults.voltageRMS,
+          currentR: calculationResults.currentR,
+          currentC: calculationResults.currentC,
+          currentTotal: calculationResults.currentTotal,
+          effectiveWRC: calculationResults.effectiveWRC,
+          resistivePercent: calculationResults.resistivePercent,
+          capacitivePercent: calculationResults.capacitivePercent,
+          isSafe: calculationResults.isSafe,
+          values: normalizedValues,
+          noiseBandwidth: calculationResults.noiseBandwidth,
           noiseValidationError: undefined,
           calculationError: undefined
         };
@@ -281,7 +204,7 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
     }
   }, [normalizedValues, params.signalType]);
 
-  // Calculate frequency response data with memoization and error handling
+  // Calculate frequency response data for sine mode
   const frequencyResponseData = useMemo<FrequencyResponseData>(() => {
     // Only calculate frequency response for sine mode
     if (params.signalType === 'noise') {
@@ -332,13 +255,11 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
           exactFreqAdded = true;
         }
 
-        const omega = 2 * Math.PI * useFreq;
-        const wRCValue = omega * normalizedRes * normalizedCap;
-
-        // Calculate impedance, current, phase angle with numerical stability protections
-        const impedance = normalizedRes / Math.sqrt(1 + Math.pow(wRCValue, 2));
+        // Use centralized calculation functions
+        const wRCValue = CircuitCalc.calculateWRC(useFreq, normalizedRes, normalizedCap);
+        const impedance = CircuitCalc.calculateImpedance(normalizedRes, wRCValue);
         const current = impedance > 0 ? 1 / impedance : 0;
-        const phaseAngle = Math.atan(wRCValue) * (180 / Math.PI);
+        const phaseAngle = CircuitCalc.calculatePhaseAngle(wRCValue);
 
         freqData.push({
           frequency: useFreq,
@@ -352,12 +273,10 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
       // If we haven't added the exact frequency, add it now
       const EPSILON = 1e-12;
       if (!exactFreqAdded) {
-        const omega = 2 * Math.PI * normalizedFreq;
-        const wRCValue = omega * normalizedRes * normalizedCap;
-        const impedance = normalizedRes / Math.sqrt(1 + Math.pow(wRCValue, 2));
+        const wRCValue = CircuitCalc.calculateWRC(normalizedFreq, normalizedRes, normalizedCap);
+        const impedance = CircuitCalc.calculateImpedance(normalizedRes, wRCValue);
         const current = impedance > 0 ? 1 / impedance : 0;
-        const phaseAngle = Math.atan(wRCValue) * (180 / Math.PI);
-        
+        const phaseAngle = CircuitCalc.calculatePhaseAngle(wRCValue);
 
         freqData.push({
           frequency: normalizedFreq,
@@ -373,8 +292,10 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
 
       return {
         data: freqData,
-       
-        transitionFrequency: (normalizedRes > EPSILON && normalizedCap > EPSILON) ? 1 / (2 * Math.PI * normalizedRes * normalizedCap) : 0,
+        // Calculate transition frequency (where ωRC = 1)
+        transitionFrequency: (normalizedRes > EPSILON && normalizedCap > EPSILON) 
+          ? 1 / (2 * Math.PI * normalizedRes * normalizedCap) 
+          : 0,
         currentFrequency: normalizedFreq,
         error: null
       };
@@ -389,27 +310,26 @@ const useRCCircuit = (initialParams: Partial<ParameterState> = {}) => {
     }
   }, [normalizedValues, params.signalType]);
 
-  // Helper function to determine circuit regime
+  // Helper function to determine circuit regime using the centralized functions
   const determineRegime = useCallback((): string => {
-    // For sine mode, use local calculation
     if (params.signalType === 'sine') {
-      if (!isFinite(results.wRC as number) || isNaN(results.wRC as number)) return "Indeterminate";
-      if ((results.wRC as number) < 1) return "Resistive";
-      if ((results.wRC as number) > 1) return "Capacitive";
-      return "Transition Point";
-    }
-    
-    // For noise mode, use the dedicated function from noiseCalculations.ts
-    if (results.noiseBandwidth) {
-      return determineNoiseRegime(
+      // For sine mode, use the wRC from results
+      if (!isFinite(results.wRC as number) || isNaN(results.wRC as number)) {
+        return "Indeterminate";
+      }
+      return CircuitCalc.determineSineRegime(results.wRC as number);
+    } else {
+      // For noise mode, use the effective wRC with noise-specific thresholds
+      if (!results.noiseBandwidth) {
+        return "Indeterminate";
+      }
+      return CircuitCalc.determineNoiseRegime(
         normalizedValues.resistance,
         normalizedValues.capacitance,
         results.noiseBandwidth.min,
         results.noiseBandwidth.max
       );
     }
-    
-    return "Indeterminate";
   }, [results, params.signalType, normalizedValues]);
 
   // Toggle signal type between sine and noise

@@ -1,7 +1,7 @@
 import React from 'react';
 import { CircuitResults } from '../types';
 import { formatValue } from '../utils';
-import { calculateEffectiveWRC, determineNoiseRegime } from '../noiseCalculations';
+import { calculateEffectiveWRC, determineNoiseRegime } from '../circuitCalculations';
 
 interface ResultsAndInterpretationProps {
   results: CircuitResults;
