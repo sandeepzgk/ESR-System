@@ -324,14 +324,14 @@ export const calculateNoiseCapacitiveCurrent = (
 };
 
 /**
- * Calculate effective ωRC for a noise band
- * This is an approximation based on the center frequency
+ * Calculate effective ωRC for a noise band using frequency-weighted integration
+ * This approach accounts for the fact that higher frequencies contribute more to capacitive behavior
  * 
  * @param resistance Resistance in Ohms
  * @param capacitance Capacitance in Farads
  * @param fMin Minimum frequency in Hz
  * @param fMax Maximum frequency in Hz
- * @returns Effective ωRC value (dimensionless)
+ * @returns Frequency-weighted effective ωRC value (dimensionless)
  */
 export const calculateEffectiveWRC = (
   resistance: number,
@@ -339,14 +339,35 @@ export const calculateEffectiveWRC = (
   fMin: number,
   fMax: number
 ): number => {
+  // Validate inputs
   if (!isFinite(fMin) || !isFinite(fMax) || !isFinite(resistance) || !isFinite(capacitance) ||
       fMin <= 0 || fMax <= 0 || resistance <= 0 || capacitance <= 0) {
     return 0;
   }
   
-  const centerFreq = (fMin + fMax) / 2;
-  return calculateWRC(centerFreq, resistance, capacitance);
+  try {
+    // Special case: if fMin and fMax are very close, use the center frequency
+    if (Math.abs(fMax - fMin) < 0.01 * fMin) {
+      const centerFreq = (fMin + fMax) / 2;
+      return 2 * Math.PI * centerFreq * resistance * capacitance;
+    }
+    
+    // Calculate powers of frequencies
+    const fMax4 = Math.pow(fMax, 4);
+    const fMin4 = Math.pow(fMin, 4);
+    const fMax3 = Math.pow(fMax, 3);
+    const fMin3 = Math.pow(fMin, 3);
+    
+    const twoPiRC = 2 * Math.PI * resistance * capacitance;
+    
+    // Calculate frequency-weighted effective ωRC using integration approach
+    return twoPiRC * 3 * (fMax4 - fMin4) / (4 * (fMax3 - fMin3));
+  } catch (error) {
+    console.error("Error in effective ωRC calculation:", error);
+    return 0;
+  }
 };
+
 
 /**
  * Determine the dominant regime for noise mode

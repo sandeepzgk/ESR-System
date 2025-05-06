@@ -225,7 +225,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                   <p>Unlike a sine wave where the current occurs at a single frequency, white noise contains power across a range of frequencies. Since capacitive reactance (X<sub>C</sub>) changes with frequency, we must integrate the current response across the entire band:</p>
                   
                   <div className="bg-white p-3 rounded border border-gray-200 my-3">
-                    <p className="text-center mb-2">Corrected mathematical derivation:</p>
+                    <p className="text-center mb-2">Mathematical derivation:</p>
                     <p>1. For white noise with voltage spectral density S<sub>v</sub>(f) = V<sub>RMS</sub><sup>2</sup>/(f<sub>max</sub> - f<sub>min</sub>):</p>
                     <p>2. The capacitor admittance is Y(f) = j2πfC</p>
                     <p>3. The current spectral density is S<sub>i</sub>(f) = S<sub>v</sub>(f) × |Y(f)|<sup>2</sup> = S<sub>v</sub>(f) × (2πfC)<sup>2</sup></p>
@@ -349,12 +349,21 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                     </ol>
                   </div>
                   
-                  <p>The effective ωRC for noise is calculated based on the center frequency of the band:</p>
-                  <div className="bg-white p-3 rounded border border-gray-200">
-                    <p>effective ωRC = 2π × [(f<sub>min</sub> + f<sub>max</sub>)/2] × R × C</p>
-                  </div>
+                  <p>The effective ωRC for noise is calculated using frequency-weighted integration across the band:</p>
+    <div className="bg-white p-3 rounded border border-gray-200">
+      <p className="mb-2">effective ωRC = 2πRC × 3(f<sub>max</sub><sup>4</sup> - f<sub>min</sub><sup>4</sup>)/(4(f<sub>max</sub><sup>3</sup> - f<sub>min</sub><sup>3</sup>))</p>
+      <p className="text-sm text-gray-600">This frequency-weighted approach accounts for the fact that higher frequencies contribute more to capacitive behavior</p>
+    </div>
+
+    <div className="bg-blue-50 p-3 rounded text-sm mt-2">
+      <p className="font-medium">Mathematical derivation:</p>
+      <p>1. For a frequency-weighted average of ωRC, we integrate across the frequency band:</p>
+      <p className="ml-4">∫(2πfRC × f²) df / ∫f² df from f<sub>min</sub> to f<sub>max</sub></p>
+      <p>2. The f² weighting reflects how capacitive current contribution scales with frequency</p>
+      <p>3. Solving the integrals yields the formula above</p>
+    </div>
                   
-                  <p className="text-sm">Note: These regime boundaries (0.5 and 1.5) provide a more nuanced classification than the single-frequency case, accounting for the broader frequency response in noise mode.</p>
+                  <p className="text-sm">Note: This integration-based approach provides a more accurate representation than the simple center frequency approximation, especially for wide frequency bands.</p>
                 </div>
               </div>
             </div>
