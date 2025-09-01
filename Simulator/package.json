@@ -2,7 +2,7 @@
     "name": "srdevice",
     "version": "0.1.0",
     "private": true,
-    "homepage": "https://sandeepzgk.github.io/SR-System",
+    "homepage": "https://sandeepzgk.github.io/ESR-System",
     "scripts": {
         "start": "react-scripts start",
         "build": "react-scripts build",
