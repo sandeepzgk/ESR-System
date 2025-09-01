@@ -1,7 +1,80 @@
+## ABXTester : Experiment Runner
 
-# Conda Environment Setup for Audio Analysis Project
+### 1) Overview
+ABXTester is a local Flask web app for running audio psychophysics experiments that combine:
+- QUEST threshold estimation to calibrate the stochastic-resonance (SR) noise level
+- ABX trials over a texture dataset
+- Durable CSV/JSON logging
 
-This guide will help you set up a Conda environment for the Audio Analysis project using the `environment.yml` file.
+Core modules
+- managers/flaskapp.py : Minimal page queue and event routing to Jinja2 templates
+- managers/stereoaudioplayer.py : Two‑channel playback (soundfile + simpleaudio) with independent gains
+- managers/questestimation.py : QUEST wrapper (max trials, start value)
+- managers/experimentreader.py : CSV‑driven condition sequencing
+- managers/atomicwriter.py : Atomic appends for results files
+
+Data layout (relative to ABXTester/)
+
+``` Note: This data is not included because of IP. Please contact the author for more information. ```
+- dataset/v2024dataset.csv : Trial/experiment conditions
+- media/textures/ : Left‑channel textures (WAV)
+- dataset/stochastic_noise.wav : Right‑channel SR noise (WAV)
+- results/ : Output CSV and QUEST JSON snapshots
+
+
+
+Entry point: main.py orchestrates page flow (instructions → QUEST → trial → experiment → survey) and wires event handlers.
+
+### 2) How to deploy/run
+Prerequisites
+- Conda/Miniconda
+- Working audio output device
+- Windows is the primary target (env includes pywin32/pypiwin32); Linux/macOS may work with minor tweaks
+
+Steps
+1. Environment
+   - conda env create -f environment.yml
+   - conda activate abx_tester
+2. Assets
+   - Ensure dataset/v2024dataset.csv, dataset/stochastic_noise.wav, and media/textures/* exist
+   - Create results/ directory if missing
+3. Launch
+   - python main.py <PARTICIPANT_ID>
+   - Open http://127.0.0.1:5000
+4. Operation
+   - Use the web UI; app posts to /event and advances pages via a queue
+   - Outputs: results/<PARTICIPANT_ID>_experiment_results.csv and <PARTICIPANT_ID>_quest_results.csv (+ .json)
+
+Notes
+- Sample rates must match between the two input WAVs; the player enforces this
+- Right channel SR amplitude is QUEST_MEAN × SRPresentationLVL (per trial row)
+
+### 3) Where it has been tested
+- Windows 10/11 with Anaconda/Miniconda
+- Python 3.11 as pinned in environment.yml
+- Chromium‑based browsers locally
+- simpleaudio backend (WASAPI/DirectSound on Windows)
+
+### 4) History and rationale (commit highlights)
+- d90c32e (ABXTester): Initial Flask app with audio playback, CSV I/O, QUEST, and templates : goal: unify thresholding and ABX in a lightweight local runner with durable logging
+- Environment pinned in environment.yml for reproducible audio/science stacks (NumPy/SciPy/Librosa/simpleaudio/PsychoPy)
+
+Design choices
+- Minimal Flask wrapper (page queue + event routing) for easy experiment customization
+- Atomic writes to prevent truncated CSVs in the presence of interruptions
+- Explicit media/dataset layout to separate stimuli from code
+
+### 5) Brief technical summary
+- Language: Python 3.11
+- Frameworks/Libraries: Flask + Jinja2, NumPy, soundfile (libsndfile), simpleaudio, pandas, pytz
+- Architecture: Single‑process Flask; event‑driven page transitions; synchronous audio playback guarded by a simple AudioManager
+- I/O: CSV conditions → in‑memory row; responses → atomic CSV + QUEST JSON snapshots
+
+
+
+# Conda Environment Setup for ABX Tester Project
+
+This guide will help you set up a Conda environment for the ABX Tester project using the `environment.yml` file.
 
 ## Prerequisites
 
@@ -27,7 +100,7 @@ conda env create -f environment.yml
 ```
 
 This will:
-- Create a new Conda environment named `audio_analysis`.
+- Create a new Conda environment named `abx_tester`.
 - Install all the necessary dependencies listed in the `environment.yml` file using Conda and pip.
 
 ### 3. Activate the Environment
@@ -35,7 +108,7 @@ This will:
 After the environment is created, activate it with the following command:
 
 ```bash
-conda activate audio_analysis
+conda activate abx_tester
 ```
 
 ### 4. Verify the Installation
@@ -82,7 +155,7 @@ This will install any new dependencies and remove packages no longer required.
 If you ever need to remove the Conda environment, you can do so with:
 
 ```bash
-conda remove --name audio_analysis --all
+conda remove --name abx_tester --all
 ```
 
 ## Troubleshooting
@@ -106,7 +179,7 @@ conda remove --name audio_analysis --all
 
 ### `environment.yml` Contents:
 ```yaml
-name: audio_analysis
+name: abx_tester
 channels:
   - defaults
   - conda-forge
