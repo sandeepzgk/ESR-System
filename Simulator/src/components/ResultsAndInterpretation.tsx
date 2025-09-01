@@ -295,7 +295,7 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
             <h3 className="font-medium mb-2">Human Body Application:</h3>
             <ul className="list-disc pl-5">
               <li><strong>Typical human body circuit:</strong> ωRC range of 0.001-0.2 (resistive dominated)</li>
-              <li><strong>Safety threshold:</strong> {formatValue(safeThreshold, 'A')}</li>
+              <li><strong>User Specified Safety Threshold:</strong> {formatValue(safeThreshold, 'A')}</li>
               <li><strong>Current level:</strong> {formatValue(currentTotal, 'A')} ({isSafe ? "safe" : "UNSAFE"})</li>
               <li><strong>Recommendation:</strong> {
                 isSafe
@@ -308,10 +308,14 @@ const ResultsAndInterpretation: React.FC<ResultsAndInterpretationProps> = ({
             </ul>
 
             <p className="mt-3 text-sm text-gray-600 italic">
-              Note: Safety thresholds are frequency-dependent in reality. The model used here
+              Note: User Specified Safety Thresholds are frequency-dependent in reality. The model used here
               is applicable for frequencies up to 2 kHz. At higher frequencies, human sensitivity
               to electrical current changes significantly.
             </p>
+
+            <div className="mt-2 text-sm text-gray-700">
+              The tissue is modeled as a parallel RC circuit (simplified electrical model)
+            </div>
           </div>
         </div>
       </div>

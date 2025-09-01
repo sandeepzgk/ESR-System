@@ -20,7 +20,7 @@ export interface CircuitParameters {
   frequency?: number;      // Frequency in Hz (for sine wave mode)
   noiseMinFreq?: number;   // Minimum frequency in Hz (for noise mode)
   noiseMaxFreq?: number;   // Maximum frequency in Hz (for noise mode)
-  safeCurrentThreshold?: number; // Safety threshold in Amperes
+  safeCurrentThreshold?: number; // User Specified Safety Threshold in Amperes
 }
 
 /**

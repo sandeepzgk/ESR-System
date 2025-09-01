@@ -375,7 +375,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                 <h3 className="font-medium mb-3 text-lg">Human Body Application</h3>
                 <ul className="list-disc pl-5">
                   <li><strong>Typical human body circuit:</strong> Resistive dominated (ωRC range of 0.001-0.2)</li>
-                  <li><strong>Safety threshold:</strong> Typically 500 μA (0.5 mA) for most human body applications</li>
+                    <li><strong>User Specified Safety Threshold:</strong> Typically 500 μA (0.5 mA) for most human body applications</li>
                   <li><strong>Risk levels:</strong>
                     <ul className="list-disc ml-5 mt-1">
                       <li>1-5 mA: Perception threshold, mild tingling sensation</li>
@@ -388,7 +388,7 @@ const MathematicalModelModal: React.FC<MathematicalModelModalProps> = ({ isOpen,
                 </ul>
                 
                 <div className="mt-4 bg-blue-50 p-3 rounded text-sm">
-                  <strong>Note:</strong> Safety thresholds are frequency-dependent in reality. The model used here is 
+                    <strong>Note:</strong> Safety Thresholds are frequency-dependent in reality. The model used here is 
                   applicable for frequencies up to 2 kHz. At higher frequencies, human sensitivity to electrical current 
                   changes significantly.
                 </div>

@@ -268,7 +268,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                 {/* Human Body Safety Threshold */}
                 <div className="bg-blue-50 rounded-lg shadow overflow-hidden">
                   <SectionHeader 
-                    title="Human Body Safety Threshold" 
+                      title="User Specified Safety Threshold" 
                     section="safety"
                   />
                   
@@ -284,16 +284,16 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
                       />
 
                       <div className="text-sm mt-2 mb-4">
-                        <span className="text-gray-600">Standard safety threshold is 500 μA (0.5 mA) for most human body applications.</span>
+                          <span className="text-gray-600">Standard Safety Threshold is 500 μA (0.5 mA) for most human body applications.</span>
                       </div>
 
                       <SafetyMeter results={results} />
 
-                      <div className="mt-2 text-xs text-gray-500 italic">
-                        Note: Safety thresholds are frequency-dependent in reality. The model used here is applicable
-                        for frequencies up to 2 kHz. At higher frequencies, human sensitivity to electrical current
-                        changes significantly.
-                      </div>
+                            <div className="mt-2 text-xs text-gray-500 italic">
+                              Note: Safety Thresholds are frequency-dependent in reality. The model used here is applicable
+                              for frequencies up to 2 kHz. At higher frequencies, human sensitivity to electrical current
+                              changes significantly.
+                            </div>
                     </div>
                   )}
                 </div>
@@ -453,7 +453,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
         {/* Desktop Layout */}
         {!isMobile && (
           <div className="hidden md:grid grid-cols-12 gap-4">
-            {/* Top Row: Parameters and Safety Threshold */}
+            {/* Top Row: Parameters and User Specified Safety Threshold */}
             <div className="col-span-8 bg-white rounded-lg shadow p-4 relative">
               <h2 className="text-lg font-semibold mb-2">Circuit Parameters</h2>
 
@@ -527,9 +527,9 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
               </div>
             </div>
 
-            {/* Human Body Safety Threshold */}
+            {/* Human Body User Specified Safety Threshold */}
             <div className="col-span-4 bg-blue-50 rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-2">Human Body Safety Threshold</h2>
+              <h2 className="text-lg font-semibold mb-2">Human Body User Specified Safety Threshold</h2>
 
               <ParameterControl
                 paramName="safeCurrentThreshold"
@@ -547,7 +547,7 @@ const RCCircuitAnalysis: React.FC<RCCircuitAnalysisProps> = ({ initialParams = {
               <SafetyMeter results={results} />
 
               <div className="mt-2 text-xs text-gray-500 italic">
-                Note: Safety thresholds are frequency-dependent in reality. The model used here is applicable
+                Note: Safety Thresholds are frequency-dependent in reality. The model used here is applicable
                 for frequencies up to 2 kHz. At higher frequencies, human sensitivity to electrical current
                 changes significantly.
               </div>

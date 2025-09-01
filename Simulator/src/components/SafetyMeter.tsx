@@ -42,8 +42,7 @@ const SafetyMeter: React.FC<SafetyMeterProps> = ({ results }) => {
 
       {frequencyWarning && (
         <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
-          <strong>Note:</strong> Safety thresholds are only valid up to 2 kHz. Human sensitivity
-          to electrical current changes at higher frequencies.
+          <strong>Note:</strong> Human sensitivity to electrical current changes at higher frequencies.
         </div>
       )}
 
@@ -58,7 +57,7 @@ const SafetyMeter: React.FC<SafetyMeterProps> = ({ results }) => {
           <span>0 (Safe)</span>
           <span>{formatCurrent(safeThreshold * 0.2)}</span>
           <span>{formatCurrent(safeThreshold * 0.6)}</span>
-          <span>{formatCurrent(safeThreshold)} (Threshold)</span>
+          <span>{formatCurrent(safeThreshold)} (User Specified Safety Threshold)</span>
         </div>
         <div className="text-sm text-center mt-2 font-semibold">
           Current: {formatCurrent(currentTotal)}

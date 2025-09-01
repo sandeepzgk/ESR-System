@@ -63,3 +63,13 @@ Design choices
 - Build targets modern browsers (per browserslist)
 - No server required for runtime; static SPA deployable to Pages or any static host
 
+The tissue is modeled as a parallel RC circuit (simplified electrical model)
+
+References used in documentation and model validation:
+- Alexander & Sadiku "Fundamentals of Electric Circuits" Chapter 9: Sinusoidal steady-state analysis
+- Hayt & Kemmerly "Engineering Circuit Analysis" Chapter 10: AC circuit theory
+- IEC 60479 series: Electrical Safety Thresholds and frequency dependence
+- IEC 60601-1:2012: Medical device leakage current limits
+- MIT OpenCourseWare 8.02T: AC circuit coverage with experimental validation
+- Electronics Tutorials: Impedance and phasor analysis with worked examples
+
